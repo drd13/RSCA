@@ -43,11 +43,11 @@ cut_allStar = allStar[combined_cut]
 
 
 
-n_datapoints = 25000
+n_datapoints = 40000
 dataset = ApogeeDataset(cut_allStar[:n_datapoints],outputs = ["aspcap","physical","idx"])
 
 
-for i in range(25000):
+for i in range(24998,30000):
     print(i)
     dataset[i][1]
 
