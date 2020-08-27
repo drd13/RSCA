@@ -36,7 +36,7 @@ class ApogeeDataset(Dataset):
         else: 
             self.outputs = outputs
             
-        if allStar:
+        if allStar is not None:
             self.allStar = allStar
             self.pickled = False
         elif filename:
@@ -116,10 +116,7 @@ class ApogeeDataset(Dataset):
         filtered_mask = np.sum(mask_arrays,axis=0)==0
         return filtered_mask
     
-    
-    def __len__(self):
-        return len(self.allStar)
-    
+ 
     def get_requested_output(self,idx, item):
         if self.pickled:
             return self.dataset[item][idx]
@@ -155,6 +152,13 @@ class ApogeeDataset(Dataset):
                 raise Exception(f"{item} is not a valid iterable")
                 
         
+   
+    def __len__(self):
+        if self.pickled is not None:
+            return len(self.dataset[list(self.dataset.keys())[0]])
+        else:
+            return len(self.allStar)
+    
     
     def __getitem__(self,idx):
         returned = []
