@@ -6,6 +6,7 @@ from apogee.tools import bitmask
 import random
 import numpy as np
 import os
+from pathlib import Path
 import pickle
 
 import torch
@@ -14,8 +15,6 @@ from torchvision import transforms, utils
 import torch.nn as nn
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-
 
 
 
@@ -58,15 +57,18 @@ class ApogeeDataset(Dataset):
             pickled_dataset[item] = data
         return pickled_dataset
     
-    def dump(self, savename):
+    def dump(self, filename):
         """dump a pickle equivalent to dataset. Useful for faster I/O"""
         dict_dataset = self.to_dict()
-        with open(os.path.join("../../outputs/pickled_datasets",f"{savename}.p"), "wb") as f:
+        filepath = Path(__file__).parents[2].joinpath("outputs","pickled_datasets",f"{filename}.p")
+        with open(filepath, "wb") as f:
             pickle.dump(dict_dataset,f)
             
     def load(self,filename):
         """load a pickled version of dataset"""
-        with open(os.path.join("../../outputs/pickled_datasets",f"{filename}.p"), "rb") as f:
+        filepath = Path(__file__).parents[2].joinpath("outputs","pickled_datasets",f"{filename}.p")
+
+        with open(filepath, "rb") as f:
             dict_dataset = pickle.load(f)
         
         return dict_dataset 
@@ -78,10 +80,11 @@ class ApogeeDataset(Dataset):
     def get_pseudonormalized(self,apogee_id,loc,telescope):
         return apread.aspcapStar(loc_id=str(loc),apogee_id=apogee_id,telescope=telescope,ext=1)
     
-    def get_apstar(self,apogee_id,loc,telescope):
+    def get_apstar(self,apogee_id,loc,telescope,channel= 0):
         spec,_ = apread.apStar(loc_id=str(loc),apogee_id=apogee_id,telescope=telescope,ext=1)
         if len(spec.shape)==2:
-            spec = spec[0] #unclear whether I should be operating on 0
+            spec = spec[channel] #unclear whether I should be operating on 0
+        spec = spec/np.mean(spec)-1
         return spec
     
     def get_mask(self,apogee_id,loc,telescope):
@@ -143,10 +146,26 @@ class ApogeeDataset(Dataset):
                 bool_mask = self.filter_mask(mask,self.filtered_bits)
                 return torch.tensor(bool_mask)
             
+            elif item == "mask2":
+                apogee_id,loc,telescope = self.idx_to_prop(idx)
+                masks = self.get_mask(apogee_id,loc,telescope)
+                if len(masks.shape)==2:
+                    mask = masks[1] #unclear whether I should be operating on 0
+                else:
+                    mask = masks
+                bool_mask = self.filter_mask(mask,self.filtered_bits)
+                return torch.tensor(bool_mask)
+            
             elif item == "apstar":
                 apogee_id,loc,telescope = self.idx_to_prop(idx)
                 spec = self.get_apstar(apogee_id,loc,telescope)
-                return torch.tensor(spec.astype(np.float32))/250
+                return torch.tensor(spec.astype(np.float32))
+            
+            elif item == "apstar2":
+                apogee_id,loc,telescope = self.idx_to_prop(idx)
+                spec = self.get_apstar(apogee_id,loc,telescope,channel=1)
+                return torch.tensor(spec.astype(np.float32))
+            
             
             else: 
                 raise Exception(f"{item} is not a valid iterable")
@@ -154,7 +173,7 @@ class ApogeeDataset(Dataset):
         
    
     def __len__(self):
-        if self.pickled is not None:
+        if self.pickled:
             return len(self.dataset[list(self.dataset.keys())[0]])
         else:
             return len(self.allStar)
