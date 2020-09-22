@@ -22,3 +22,6 @@ class Occam():
     def load_members(self):
         members_path = "/share/splinter/ddm/modules/turbospectrum/spectra/dr16/apogee/vac/apogee-occam/occam_member-DR16.fits"
         return fits.open(members_path)
+
+    
+    
