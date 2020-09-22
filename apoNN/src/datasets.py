@@ -43,7 +43,6 @@ class ApogeeDataset(Dataset):
             self.pickled = True
         else:
             raise Exception("need to specify one of allStar or filename")
-
         
             
     def to_dict(self):
@@ -71,16 +70,18 @@ class ApogeeDataset(Dataset):
         with open(filepath, "rb") as f:
             dict_dataset = pickle.load(f)
         
-        return dict_dataset 
+        return dict_dataset
     
         
     def idx_to_prop(self,idx):
         return self.allStar[idx]["APOGEE_ID"],self.allStar[idx]["FIELD"], self.allStar[idx]["TELESCOPE"]
     
     def get_pseudonormalized(self,apogee_id,loc,telescope):
+        """returns aspcap spectra"""
         return apread.aspcapStar(loc_id=str(loc),apogee_id=apogee_id,telescope=telescope,ext=1)
     
     def get_apstar(self,apogee_id,loc,telescope,channel= 0):
+        """returns apread spectra"""
         spec,_ = apread.apStar(loc_id=str(loc),apogee_id=apogee_id,telescope=telescope,ext=1)
         if len(spec.shape)==2:
             spec = spec[channel] #unclear whether I should be operating on 0
@@ -90,13 +91,26 @@ class ApogeeDataset(Dataset):
     def get_mask(self,apogee_id,loc,telescope):
         return apread.apStar(loc_id=str(loc),apogee_id=apogee_id,telescope=telescope,ext=3)[0]
     
-    def idx_to_physical(self,idx):
+    def idx_to_physical(self,idx,scale_physical=True):
         t_eff = self.allStar[idx]["Teff"]
         log_g = self.allStar[idx]["logg"]
-        return torch.tensor([self.scale(t_eff,4000,5000),self.scale(log_g,1.5,3.)])
+        if scale_physical is True:
+            return torch.tensor([self.rescale(t_eff,4000,5000),self.rescale(log_g,1.5,3.)])
+        else:
+            return torch.tensor([t_eff,log_g])
     
-    def scale(self,t_eff,upper,lower):
-        return (t_eff-lower)/(upper-lower)
+    def idx_to_parameters(self,idx,parameters,rescale=False):
+        param_vals= np.array([self.allStar[idx][param] for param in parameters])
+        if rescale is True:
+            #not yet implemented
+            return torch.tensor(self.rescale(param_vals))
+        else:
+            return torch.tensor(param_vals)
+    
+    
+    
+    def rescale(self,param,upper,lower):
+        return (param-lower)/(upper-lower)
     
     
     def set_filtered_bits(self,filtered_bits=None):
@@ -128,6 +142,10 @@ class ApogeeDataset(Dataset):
                 apogee_id,loc,telescope = self.idx_to_prop(idx)
                 spec,hed = self.get_pseudonormalized(apogee_id,loc,telescope)
                 return torch.tensor(spec.astype(np.float32))
+            
+            elif isinstance(item, list):
+                parameters = self.idx_to_parameters(idx, item)
+                return parameters
                 
             elif item == "physical":
                 physical_params = self.idx_to_physical(idx)
@@ -184,3 +202,11 @@ class ApogeeDataset(Dataset):
         for item in self.outputs:
             returned.append(self.get_requested_output(idx,item))
         return tuple(returned)
+
+
+
+
+
+
+
+
