@@ -45,28 +45,36 @@ class LatentVector(Vector):
         return x_pred.squeeze()
     
     def plot_rec(self,idx):
-        plt.plot(z_occam.get_x_pred(clust_idxs[0][idx]).detach().cpu().numpy())
-        plt.plot(z_occam.get_x(clust_idxs[0][idx]).detach().cpu().numpy())
+        plt.plot(self.get_x_pred(clust_idxs[0][idx]).detach().cpu().numpy())
+        plt.plot(self.get_x(clust_idxs[0][idx]).detach().cpu().numpy())
         plt.xlim(4000,4200)
         
     
     
 class OccamLatentVector(LatentVector):
-    def __init__(self,  dataset, autoencoder, occam_cluster_idxs, n_data = 100):
-        self.autoencoder = autoencoder
-        self.dataset = dataset
-        self.occam_cluster_idxs = occam_cluster_idxs
-        self._raw = np.array([self.get_z(idx) for idx in range(n_data)]).squeeze()
+    def __init__(self,  dataset, autoencoder, cluster_names, n_data = 100):
+        LatentVector.__init__(self,dataset,autoencoder,n_data)
+        self.cluster_names = cluster_names
+        self.registry = self.make_registry(self.cluster_names)
+    
+    
+    def make_registry(self,cluster_names):
+        clusters = list(set(cluster_names))
+        cluster_registry = {}
+        for cluster in clusters:
+            cluster_idxs = np.where(cluster_names==cluster)
+            cluster_registry[cluster] = cluster_idxs[0]
+        return cluster_registry
     
     
     @property
     def cluster_centered(self):
         z = np.zeros(self.raw.shape)
-        for cluster_name in set(self.occam_cluster_idxs):
-            cluster_idxs = np.where(self.occam_cluster_idxs==cluster_name)
+        for cluster in self.registry:
+            cluster_idxs = self.registry[cluster]
             z[cluster_idxs]=self.raw[cluster_idxs]-self.raw[cluster_idxs].mean(axis=0)
         return z
-
+  
     
 class LinearTransformation():
     def __init__(self,x,y):
