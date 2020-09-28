@@ -6,6 +6,14 @@ from tagging.src.networks import *
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
+def project(data,direction):
+    """obtain linear projection of data along direction"""
+    return np.dot(direction,data.T).squeeze()
+
+def get_vars(data,directions):
+    return np.var(project(data,directions),axis=1)
+
+
 
 class Vector():
     def __init__(self, raw):
@@ -38,16 +46,22 @@ class LatentVector(Vector):
     
     
     def get_x(self,idx):
-        return self.dataset[idx][0]
+        return self.dataset[idx][0].detach().cpu().numpy()
+   
+    def get_mask(self,idx):
+        return self.dataset[idx][1]
     
     def get_x_pred(self,idx):
         x_pred,_ = self.autoencoder(self.dataset[idx][0].to(device).unsqueeze(0))
-        return x_pred.squeeze()
+        return x_pred.squeeze().detach().cpu().numpy()
     
-    def plot_rec(self,idx):
-        plt.plot(self.get_x_pred(clust_idxs[0][idx]).detach().cpu().numpy())
-        plt.plot(self.get_x(clust_idxs[0][idx]).detach().cpu().numpy())
-        plt.xlim(4000,4200)
+    def plot(self,idx,limits=[4000,4200]):
+        plt.plot(self.get_x_pred(idx),label="pred")
+        plt.plot(self.get_x(idx),label="real")
+        plt.legend()
+        plt.xlim(limits)
+        
+      
         
     
     
