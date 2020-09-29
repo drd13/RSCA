@@ -29,39 +29,43 @@ class ApogeeDataset(Dataset):
             a list specifying what items to return for dataset calls
         """
         self.filtered_bits =  self.set_filtered_bits()
+        self.serialized=False
         
         if outputs is None:
-            self.outputs = ["aspcap","physical","idx"]
+            self.outputs = ["aspcap","aspcap_err","idx"]
         else: 
             self.outputs = outputs
             
         if allStar is not None:
             self.allStar = allStar
-            self.pickled = False
+            self.dataset = self.to_dict()
+            self.serialized = True
+
+
         elif filename:
             self.dataset = self.load(filename)
-            self.pickled = True
+            self.serialized = True
         else:
             raise Exception("need to specify one of allStar or filename")
         
             
     def to_dict(self):
         """generates a pickled version of the currently loaded dataset"""
-        pickled_dataset = {}
+        dict_dataset = {}
         for item in self.outputs:
             data = []
             for idx in range(len(self)):
-                output = self.get_requested_output(idx,item)
+                output = self.serialize(idx,item)
                 data.append(output)
-            pickled_dataset[item] = data
-        return pickled_dataset
+            dict_dataset[item] = np.array(data)
+         
+        return dict_dataset
     
     def dump(self, filename):
         """dump a pickle equivalent to dataset. Useful for faster I/O"""
-        dict_dataset = self.to_dict()
         filepath = Path(__file__).parents[2].joinpath("outputs","pickled_datasets",f"{filename}.p")
         with open(filepath, "wb") as f:
-            pickle.dump(dict_dataset,f)
+            pickle.dump(self.dataset,f)
             
     def load(self,filename):
         """load a pickled version of dataset"""
@@ -69,23 +73,22 @@ class ApogeeDataset(Dataset):
 
         with open(filepath, "rb") as f:
             dict_dataset = pickle.load(f)
-        
         return dict_dataset
     
         
     def idx_to_prop(self,idx):
         return self.allStar[idx]["APOGEE_ID"],self.allStar[idx]["FIELD"], self.allStar[idx]["TELESCOPE"]
     
-    def get_pseudonormalized(self,apogee_id,loc,telescope):
+    def get_aspcap(self,apogee_id,loc,telescope,ext=1):
         """returns aspcap spectra"""
-        return apread.aspcapStar(loc_id=str(loc),apogee_id=apogee_id,telescope=telescope,ext=1)
+        return apread.aspcapStar(loc_id=str(loc),apogee_id=apogee_id,telescope=telescope,ext=ext)
     
     def get_apstar(self,apogee_id,loc,telescope,channel= 0):
         """returns apread spectra"""
         spec,_ = apread.apStar(loc_id=str(loc),apogee_id=apogee_id,telescope=telescope,ext=1)
         if len(spec.shape)==2:
             spec = spec[channel] #unclear whether I should be operating on 0
-        spec = spec/np.mean(spec)-1
+        spec = spec/np.mean(spec)-1 #quick normalization of spectra
         return spec
     
     def get_mask(self,apogee_id,loc,telescope):
@@ -95,17 +98,17 @@ class ApogeeDataset(Dataset):
         t_eff = self.allStar[idx]["Teff"]
         log_g = self.allStar[idx]["logg"]
         if scale_physical is True:
-            return torch.tensor([self.rescale(t_eff,4000,5000),self.rescale(log_g,1.5,3.)])
+            return [self.rescale(t_eff,4000,5000),self.rescale(log_g,1.5,3.)]
         else:
-            return torch.tensor([t_eff,log_g])
+            return [t_eff,log_g]
     
     def idx_to_parameters(self,idx,parameters,rescale=False):
         param_vals= np.array([self.allStar[idx][param] for param in parameters])
         if rescale is True:
             #not yet implemented
-            return torch.tensor(self.rescale(param_vals))
+            return self.rescale(param_vals)
         else:
-            return torch.tensor(param_vals)
+            return param_vals
     
     
     
@@ -133,65 +136,91 @@ class ApogeeDataset(Dataset):
         filtered_mask = np.sum(mask_arrays,axis=0)==0
         return filtered_mask
     
- 
-    def get_requested_output(self,idx, item):
-        if self.pickled:
-            return self.dataset[item][idx]
-        else:
-            if item == "aspcap":
-                apogee_id,loc,telescope = self.idx_to_prop(idx)
-                spec,hed = self.get_pseudonormalized(apogee_id,loc,telescope)
-                return torch.tensor(spec.astype(np.float32))
+    
+    def interpolator(self,dataset,idx, filling_dataset=None):
+        if filling_dataset is None:
+            filling_dataset=dataset
             
-            elif isinstance(item, list):
-                parameters = self.idx_to_parameters(idx, item)
-                return parameters
-                
-            elif item == "physical":
-                physical_params = self.idx_to_physical(idx)
-                return physical_params
-                
-            elif item == "idx":
-                return idx
-            
-            elif item == "mask":
-                apogee_id,loc,telescope = self.idx_to_prop(idx)
-                masks = self.get_mask(apogee_id,loc,telescope)
-                if len(masks.shape)==2:
-                    mask = masks[0] #unclear whether I should be operating on 0
-                else:
-                    mask = masks
-                bool_mask = self.filter_mask(mask,self.filtered_bits)
-                return torch.tensor(bool_mask)
-            
-            elif item == "mask2":
-                apogee_id,loc,telescope = self.idx_to_prop(idx)
-                masks = self.get_mask(apogee_id,loc,telescope)
-                if len(masks.shape)==2:
-                    mask = masks[1] #unclear whether I should be operating on 0
-                else:
-                    mask = masks
-                bool_mask = self.filter_mask(mask,self.filtered_bits)
-                return torch.tensor(bool_mask)
-            
-            elif item == "apstar":
-                apogee_id,loc,telescope = self.idx_to_prop(idx)
-                spec = self.get_apstar(apogee_id,loc,telescope)
-                return torch.tensor(spec.astype(np.float32))
-            
-            elif item == "apstar2":
-                apogee_id,loc,telescope = self.idx_to_prop(idx)
-                spec = self.get_apstar(apogee_id,loc,telescope,channel=1)
-                return torch.tensor(spec.astype(np.float32))
-            
-            
-            else: 
-                raise Exception(f"{item} is not a valid iterable")
-                
+        missing_values = dataset[idx]==0
+        interpolating_candidates = filling_dataset[:,missing_values==False]
+        similarity = np.sum((interpolating_candidates - interpolating_candidates[idx])**2,axis=1)
+        similarity_argsort = list(similarity.argsort()) #1 because 0 is the spectra itself
+        print(f"most similar:{similarity_argsort[1]}")
+        spectra = np.copy(dataset[idx])
+        zeroes_exist=True
+        while zeroes_exist:
+            most_similar_idx = similarity_argsort.pop(0)
+            spectra[missing_values] = filling_dataset[most_similar_idx][missing_values] #while loop makes replacing with flagged ok
+            missing_values = spectra==0
+            print(np.sum(missing_values))
+            if (missing_values==False).all():
+                zeroes_exist=False
+
+        return spectra         
         
-   
+    def serialize(self,idx,item):
+        if item == "aspcap":
+            apogee_id,loc,telescope = self.idx_to_prop(idx)
+            spec,hed = self.get_aspcap(apogee_id,loc,telescope,ext=1)
+            return spec.astype(np.float32)
+        
+        elif item == "aspcap_err":
+            apogee_id,loc,telescope = self.idx_to_prop(idx)
+            spec_err,_ = self.get_aspcap(apogee_id,loc,telescope,ext=2) 
+            return spec_err.astype(np.float32)
+
+        elif isinstance(item, list):
+            parameters = self.idx_to_parameters(idx, item)
+            return parameters
+
+        elif item == "physical":
+            physical_params = self.idx_to_physical(idx)
+            return physical_params
+
+        elif item == "idx":
+            return idx
+
+        elif item == "mask":
+            apogee_id,loc,telescope = self.idx_to_prop(idx)
+            masks = self.get_mask(apogee_id,loc,telescope)
+            if len(masks.shape)==2:
+                mask = masks[0] #unclear whether I should be operating on 0
+            else:
+                mask = masks
+            bool_mask = self.filter_mask(mask,self.filtered_bits)
+            return bool_mask
+
+        elif item == "mask2":
+            apogee_id,loc,telescope = self.idx_to_prop(idx)
+            masks = self.get_mask(apogee_id,loc,telescope)
+            if len(masks.shape)==2:
+                mask = masks[1] #unclear whether I should be operating on 0
+            else:
+                mask = masks
+            bool_mask = self.filter_mask(mask,self.filtered_bits)
+            return bool_mask
+
+        elif item == "apstar":
+            apogee_id,loc,telescope = self.idx_to_prop(idx)
+            spec = self.get_apstar(apogee_id,loc,telescope)
+            return spec.astype(np.float32)
+
+        elif item == "apstar2":
+            apogee_id,loc,telescope = self.idx_to_prop(idx)
+            spec = self.get_apstar(apogee_id,loc,telescope,channel=1)
+            return spec.astype(np.float32)
+
+
+        else: 
+            raise Exception(f"{item} is not a valid iterable")
+        
+        
+        
+    def get_requested_output(self,idx, item):
+            return self.dataset[item][idx]
+            
     def __len__(self):
-        if self.pickled:
+        if self.serialized:
             return len(self.dataset[list(self.dataset.keys())[0]])
         else:
             return len(self.allStar)
@@ -208,5 +237,96 @@ class ApogeeDataset(Dataset):
 
 
 
+
+
+
+class AspcapDataset(ApogeeDataset):
+    def __init__(self,allStar=None,filename=None, filling_dataset = None):
+        """
+        allStar: 
+            an allStar shape array containg those stars chosen for the dataset
+        filename:
+            string containing filename (not path!) of pickled dictionary. 
+        outputs:
+            a list specifying what items to return for dataset calls
+        """
+        self.filtered_bits =  self.set_filtered_bits()
+        self.filling_dataset = filling_dataset
+        self.err_threshold = 0.05
+        self.serialized=False
+        self.outputs = ["aspcap","aspcap_err","idx"]
+        if allStar is not None:
+            self.allStar = allStar
+            self.dataset = self.to_dict()
+            self.serialized = True
+
+        elif filename:
+            self.dataset = self.load(filename)
+            self.serialized = True
+        else:
+            raise Exception("need to specify one of allStar or filename")
+        
+    def to_dict(self):
+        """generates a pickled version of the currently loaded dataset and creates an aspcap_interpolated object containing interpolated spectra"""
+        dict_dataset = ApogeeDataset.to_dict(self)
+        
+        interpolated_aspcap = self.serialize_interpolation(dict_dataset)
+        dict_dataset["aspcap_interpolated"] = np.array(interpolated_aspcap)
+
+        return dict_dataset
+    
+    def serialize_interpolation(self,dict_dataset):
+        data = []
+        specs = dict_dataset["aspcap"]
+        specs_err = dict_dataset["aspcap_err"]
+        specs[specs_err>self.err_threshold] =0
+        for idx in range(len(self)):
+            print(idx)
+            output = self.interpolate(specs,idx,self.filling_dataset)
+            data.append(output)
+        return data
+        
+    
+    def interpolate(self,dataset,idx, filling_dataset=None):
+        if filling_dataset is None:
+            filling_dataset=dataset
+        well_behaved_bins = np.sum(dataset,axis=0)!=0 #we want to ignore those bins always at zero
+        missing_values = dataset[idx]==0
+        interpolating_candidates = filling_dataset[:,missing_values==False]
+        similarity = np.sum((interpolating_candidates - interpolating_candidates[idx])**2,axis=1)
+        similarity_argsort = list(similarity.argsort()) #1 because 0 is the spectra itself
+        spectra = np.copy(dataset[idx])
+        zeroes_exist=True
+        while zeroes_exist:
+            most_similar_idx = similarity_argsort.pop(0)
+            spectra[missing_values] = filling_dataset[most_similar_idx][missing_values] #while loop makes replacing with flagged ok
+            missing_values = spectra==0
+            if (missing_values[well_behaved_bins]==False).all():
+                zeroes_exist=False
+
+        return spectra         
+        
+        
+    def get_requested_output(self,idx, item):
+            return self.dataset[item][idx]
+            
+        
+   
+    def __len__(self):
+        if self.serialized:
+            return len(self.dataset[list(self.dataset.keys())[0]])
+        else:
+            return len(self.allStar)
+    
+    
+    def __getitem__(self,idx):
+        spectra = self.get_requested_output(idx,"aspcap_interpolated")
+        spectra_raw = self.get_requested_output(idx,"aspcap")
+        spectra_err = self.get_requested_output(idx,"aspcap_err")
+
+        idx = self.get_requested_output(idx,"idx")
+
+        returned = [torch.tensor(spectra),torch.tensor(spectra_raw),torch.tensor(spectra_err),torch.tensor(idx)]
+        return tuple(returned)
 
 
