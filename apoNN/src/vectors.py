@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import torch
 
 from tagging.src.networks import *
+from astropy.io import fits
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
@@ -13,7 +15,7 @@ def project(data,direction):
 def get_vars(data,directions):
     return np.var(project(data,directions),axis=1)
 
-
+from sklearn.preprocessing import PolynomialFeatures
 
 class Vector():
     def __init__(self, raw):
@@ -29,8 +31,8 @@ class Vector():
     
     @property
     def normalized(self):
-        return self.centered/np.max(self.centered,0)
-       
+        return self.centered/np.max(np.abs(self.centered),0)
+    
 
 
 
@@ -41,18 +43,18 @@ class LatentVector(Vector):
         self._raw = np.array([self.get_z(idx) for idx in range(n_data)]).squeeze()
 
     def get_z(self,idx):
-        _,z = self.autoencoder(self.dataset[idx][0].to(device).unsqueeze(0))
+        _,z = self.autoencoder(torch.tensor(self.dataset[idx][0]).to(device).unsqueeze(0))
         return z.detach().cpu().numpy()
     
     
     def get_x(self,idx):
-        return self.dataset[idx][0].detach().cpu().numpy()
+        return self.dataset[idx][0]
    
     def get_mask(self,idx):
         return self.dataset[idx][1]
     
     def get_x_pred(self,idx):
-        x_pred,_ = self.autoencoder(self.dataset[idx][0].to(device).unsqueeze(0))
+        x_pred,_ = self.autoencoder(torch.tensor(self.dataset[idx][0]).to(device).unsqueeze(0))
         return x_pred.squeeze().detach().cpu().numpy()
     
     def plot(self,idx,limits=[4000,4200]):
@@ -88,6 +90,42 @@ class OccamLatentVector(LatentVector):
             cluster_idxs = self.registry[cluster]
             z[cluster_idxs]=self.raw[cluster_idxs]-self.raw[cluster_idxs].mean(axis=0)
         return z
+    
+    
+    
+
+class AstroNNVector(Vector):
+    def __init__(self,allStar,params):
+        self.astroNN_hdul = fits.open("/share/splinter/ddm/modules/turbospectrum/spectra/dr16/apogee/vac/apogee-astronn/apogee_astroNN-DR16-v0.fits")
+        self.allStar = allStar
+        self.params = params
+        ids = self.get_astroNN_ids(self.allStar)
+        cut_astroNN = self.astroNN_hdul[1].data[ids]
+        self._raw = self.generate_abundances(cut_astroNN,self.params)
+        
+        
+    def get_astroNN_ids(self,allStar):
+        desired_ids= []
+        astroNN_ids = list(self.astroNN_hdul[1].data["Apogee_id"])
+        for apogee_id in allStar["APOGEE_ID"]:
+            desired_ids.append(astroNN_ids.index(apogee_id))
+        return desired_ids
+    
+    
+    def generate_abundances(self,astroNN,params):
+        values = []
+        for i,p in enumerate(params):
+            fe_h = astroNN["FE_H"]
+            if p in ["Teff","logg","Fe_H"]:
+                values.append(astroNN[p])
+            else:
+                p_h = astroNN[params[i].split("_")[0]+"_H"]
+                values.append(p_h-fe_h)
+
+        return np.array(values).T
+ 
+    
+    
   
     
 class LinearTransformation():
@@ -137,9 +175,9 @@ class NonLinearTransformation():
         #need to return a Vector. So ncenteredeed to make this take the correct shape
         x = torch.tensor(vector.centered).to(device)
         y_unscaled_pred = self.network(x).detach().cpu().numpy()
-        y_pred = y_unscaled_pred*np.max(self.y.centered,0)+np.mean(self.y.raw,axis=0)
+        y_pred = y_unscaled_pred*np.max(np.abs(self.y.centered),0)+np.mean(self.y.raw,axis=0)
         return Vector(y_pred)                
         #return np.dot(self.val,vector.centered.T)
 
 
-
+        
