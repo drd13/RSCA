@@ -9,6 +9,9 @@ import os
 from pathlib import Path
 import pickle
 
+import apoNN.src.vectors as vector
+
+
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
@@ -234,14 +237,8 @@ class ApogeeDataset(Dataset):
 
 
 
-
-
-
-
-
-
 class AspcapDataset(ApogeeDataset):
-    def __init__(self,allStar=None,filename=None, filling_dataset = None):
+    def __init__(self,allStar=None,filename=None, filling_dataset = None,tensor_type=torch.FloatTensor,recenter=False):
         """
         allStar: 
             an allStar shape array containg those stars chosen for the dataset
@@ -250,11 +247,13 @@ class AspcapDataset(ApogeeDataset):
         outputs:
             a list specifying what items to return for dataset calls
         """
+        self.tensor = tensor_type
         self.filtered_bits =  self.set_filtered_bits()
         self.filling_dataset = filling_dataset
         self.err_threshold = 0.05
         self.serialized=False
         self.outputs = ["aspcap","aspcap_err","idx"]
+        self.recenter=recenter
         if allStar is not None:
             self.allStar = allStar
             self.dataset = self.to_dict()
@@ -265,6 +264,12 @@ class AspcapDataset(ApogeeDataset):
             self.serialized = True
         else:
             raise Exception("need to specify one of allStar or filename")
+            
+        
+        if self.recenter is True:
+            self.x = vector.Vector(self.dataset["aspcap_interpolated"]).centered
+        else:
+            self.x = vector.Vector(self.dataset["aspcap_interpolated"]).raw
         
     def to_dict(self):
         """generates a pickled version of the currently loaded dataset and creates an aspcap_interpolated object containing interpolated spectra"""
@@ -320,13 +325,14 @@ class AspcapDataset(ApogeeDataset):
     
     
     def __getitem__(self,idx):
-        spectra = self.get_requested_output(idx,"aspcap_interpolated")
+        spectra = self.x[idx]    
+        #self.get_requested_output(idx,"aspcap_interpolated")
         spectra_raw = self.get_requested_output(idx,"aspcap")
         spectra_err = self.get_requested_output(idx,"aspcap_err")
 
         idx = self.get_requested_output(idx,"idx")
 
-        returned = [torch.tensor(spectra),torch.tensor(spectra_raw),torch.tensor(spectra_err),torch.tensor(idx)]
+        returned = [self.tensor(spectra),self.tensor(spectra_raw),self.tensor(spectra_err),torch.tensor(idx)]
         return tuple(returned)
 
 
