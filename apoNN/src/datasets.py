@@ -51,16 +51,26 @@ class ApogeeDataset(Dataset):
         else:
             raise Exception("need to specify one of allStar or filename")
         
+    def allStar_trimming(self,troublesome_ids):
+        ids = np.arange(len(self.allStar))
+        kept_ids = np.delete(ids,troublesome_ids)
+        self.allStar = self.allStar[kept_ids]
             
     def to_dict(self):
         """generates a pickled version of the currently loaded dataset"""
         dict_dataset = {}
+        troublesome_ids = []
         for item in self.outputs:
             data = []
             for idx in range(len(self)):
-                output = self.serialize(idx,item)
-                data.append(output)
+                try:
+                    output = self.serialize(idx,item)
+                    data.append(output)
+                except:
+                    print(f"\n\n\nFAILING IDX:{IDX}\n\n\n")
+                    troublesome_ids.append(idx)
             dict_dataset[item] = np.array(data)
+        self.allStar_trimming(troublesome_ids)
          
         return dict_dataset
     
@@ -234,6 +244,49 @@ class ApogeeDataset(Dataset):
         for item in self.outputs:
             returned.append(self.get_requested_output(idx,item))
         return tuple(returned)
+
+
+class ApstarDataset(ApogeeDataset):
+    def __init__(self,allStar=None,filename=None, filling_dataset = None,tensor_type=torch.FloatTensor,recenter=False,continuum_normalize=None):
+        """
+        allStar: 
+            an allStar shape array containg those stars chosen for the dataset
+        filename:
+            string containing filename (not path!) of pickled dictionary. 
+        outputs:
+            a list specifying what items to return for dataset calls
+        """
+        self.tensor = tensor_type
+        self.filtered_bits =  self.set_filtered_bits()
+        self.filling_dataset = filling_dataset
+        self.err_threshold = 0.05
+        self.serialized=False
+        self.outputs = ["apstar","mask","idx"]
+        self.recenter=recenter
+        self.continuum_normalize = continuum_normalize
+        if allStar is not None:
+            self.allStar = allStar
+            self.dataset = self.to_dict()
+            self.serialized = True
+
+        elif filename:
+            self.dataset = self.load(filename)
+            self.serialized = True
+        else:
+            raise Exception("need to specify one of allStar or filename")
+            
+        if self.recenter is True:
+            self.x = vector.Vector(self.dataset["apstar_interpolated"]).centered
+        else:
+            self.x = vector.Vector(self.dataset["apstar_interpolated"]).raw
+    def to_dict(self):
+        """generates a pickled version of the currently loaded dataset and creates an aspcap_interpolated object containing interpolated spectra"""
+        dict_dataset = ApogeeDataset.to_dict(self)
+        
+        interpolated_apstar = self.serialize_interpolation(dict_dataset)
+        dict_dataset["apstar_interpolated"] = np.array(interpolated_apstar)
+        return dict_dataset
+    
 
 
 
