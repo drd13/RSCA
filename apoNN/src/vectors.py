@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import torch
 
 from tagging.src.networks import *
+from sklearn.preprocessing import PolynomialFeatures
 from astropy.io import fits
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -18,9 +19,13 @@ def get_vars(data,directions):
 from sklearn.preprocessing import PolynomialFeatures
 
 class Vector():
-    def __init__(self, raw):
+    def __init__(self, raw, order=1,interaction_only=True):
         self._raw = raw
-       
+        if order>1:
+            poly = PolynomialFeatures(order,interaction_only,include_bias=False)
+            self._raw = poly.fit_transform(self._raw)
+            
+        
     @property
     def raw(self):
         return self._raw
@@ -37,10 +42,12 @@ class Vector():
 
 
 class LatentVector(Vector):
-    def __init__(self,  dataset, autoencoder, n_data = 100):
+    def __init__(self,  dataset, autoencoder, n_data = 100, order=1,interaction_only=True):
         self.autoencoder = autoencoder
         self.dataset = dataset
-        self._raw = np.array([self.get_z(idx) for idx in range(n_data)]).squeeze()
+        raw = np.array([self.get_z(idx) for idx in range(n_data)]).squeeze()
+        Vector.__init__(self,raw,order,interaction_only)
+
 
     def get_z(self,idx):
         _,z = self.autoencoder(torch.tensor(self.dataset[idx][0]).to(device).unsqueeze(0))
@@ -68,8 +75,8 @@ class LatentVector(Vector):
     
     
 class OccamLatentVector(LatentVector):
-    def __init__(self,  dataset, autoencoder, cluster_names, n_data = 100):
-        LatentVector.__init__(self,dataset,autoencoder,n_data)
+    def __init__(self,  dataset, autoencoder, cluster_names, n_data = 100, order=1,interaction_only=True):
+        LatentVector.__init__(self,dataset,autoencoder,n_data,order,interaction_only)
         self.cluster_names = cluster_names
         self.registry = self.make_registry(self.cluster_names)
     
@@ -154,7 +161,7 @@ class NonLinearTransformation():
         structure = [x.centered.shape[1],256,256,y.centered.shape[1]]
         self.network  = Feedforward(structure,activation=nn.SELU()).to(device)
         self.loss = torch.nn.MSELoss()
-        self.optimizer = torch.optim.Adam(self.network.parameters(),lr=0.0001)
+        self.optimizer = torch.optim.Adam(self.network.parameters(),lr=0.00001)
         self.idx_loader = torch.utils.data.DataLoader(torch.arange(y.centered.shape[0]),batch_size=100)
 
         
