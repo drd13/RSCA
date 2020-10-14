@@ -82,8 +82,8 @@ class OccamLatentVector(LatentVector,Vector):
         self.cluster_names = cluster_names
         self.registry = self.make_registry(self.cluster_names)
 
-
-    def make_registry(self,cluster_names):
+    @staticmethod
+    def make_registry(cluster_names):
         clusters = list(set(cluster_names))
         cluster_registry = {}
         for cluster in clusters:

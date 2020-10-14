@@ -14,6 +14,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
 import torch.nn as nn
 
+"""THIS SCRIPT NEEDS TO BE RUN AFTER make_occam.py"""
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 apogee_path.change_dr(16)
