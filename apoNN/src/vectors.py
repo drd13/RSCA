@@ -48,7 +48,6 @@ class LatentVector(Vector):
         raw = np.array([self.get_z(idx) for idx in range(n_data)]).squeeze()
         Vector.__init__(self,raw,order,interaction_only)
 
-
     def get_z(self,idx):
         _,z = self.autoencoder(torch.tensor(self.dataset[idx][0]).to(device).unsqueeze(0))
         return z.detach().cpu().numpy()
@@ -74,13 +73,16 @@ class LatentVector(Vector):
         
     
     
-class OccamLatentVector(LatentVector):
-    def __init__(self,  dataset, autoencoder, cluster_names, n_data = 100, order=1,interaction_only=True):
-        LatentVector.__init__(self,dataset,autoencoder,n_data,order,interaction_only)
+class OccamLatentVector(LatentVector,Vector):
+    def __init__(self, cluster_names, dataset=None, autoencoder=None, raw=None, n_data = 100, order=1,interaction_only=True):
+        if raw is None:     
+            LatentVector.__init__(self,dataset,autoencoder,n_data,order,interaction_only)
+        else:
+            Vector.__init__(self,raw,order,interaction_only)
         self.cluster_names = cluster_names
         self.registry = self.make_registry(self.cluster_names)
-    
-    
+
+
     def make_registry(self,cluster_names):
         clusters = list(set(cluster_names))
         cluster_registry = {}
