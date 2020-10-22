@@ -90,6 +90,7 @@ class OccamLatentVector(LatentVector,Vector):
         self.cluster_names = cluster_names
         self.registry = self.make_registry(self.cluster_names)
 
+
     @staticmethod
     def make_registry(cluster_names):
         clusters = list(set(cluster_names))
@@ -107,12 +108,19 @@ class OccamLatentVector(LatentVector,Vector):
             cluster_idxs = self.registry[cluster]
             z[cluster_idxs]=self.raw[cluster_idxs]-self.raw[cluster_idxs].mean(axis=0)
         return Vector(z)
-    
+
+
+    @property
+    def centered(self):
+        return OccamLatentVector(self.cluster_names, raw = self._raw -np.mean(self._raw,axis=0))
+ 
+
     def only(self,cluster_name):
         """return an OccamLatentVector containing only the cluster of interest"""
         idxs_kept = self.registry[cluster_name]
         return OccamLatentVector(self.cluster_names[idxs_kept],raw=self.raw[idxs_kept])
    
+
     def without(self,cluster_name):
         """return an OccamLatentVector containing all the clusters except one cluster"""
         idxs_cluster = self.registry[cluster_name]
