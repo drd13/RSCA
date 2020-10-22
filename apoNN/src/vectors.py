@@ -108,6 +108,16 @@ class OccamLatentVector(LatentVector,Vector):
             z[cluster_idxs]=self.raw[cluster_idxs]-self.raw[cluster_idxs].mean(axis=0)
         return Vector(z)
     
+    def only(self,cluster_name):
+        """return an OccamLatentVector containing only the cluster of interest"""
+        idxs_kept = self.registry[cluster_name]
+        return OccamLatentVector(self.cluster_names[idxs_kept],raw=self.raw[idxs_kept])
+   
+    def without(self,cluster_name):
+        """return an OccamLatentVector containing all the clusters except one cluster"""
+        idxs_cluster = self.registry[cluster_name]
+        idxs_kept = np.delete(np.arange(len(self.raw)),idxs_cluster)
+        return OccamLatentVector(self.cluster_names[idxs_kept],raw=self.raw[idxs_kept])
     
     
 
