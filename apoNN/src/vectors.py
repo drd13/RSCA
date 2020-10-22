@@ -4,6 +4,7 @@ import torch
 
 from tagging.src.networks import *
 from sklearn.preprocessing import PolynomialFeatures
+from sklearn.decomposition import PCA
 from astropy.io import fits
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -195,5 +196,32 @@ class NonLinearTransformation():
         return Vector(y_pred)                
         #return np.dot(self.val,vector.centered.T)
 
+        
+        
+class Fitter():
+    def __init__(self,z:Vector,z_occam:OccamLatentVector):
+        self.z = z
+        self.z_occam = z_occam
+        self.whitener = PCA(n_components=self.z.raw.shape[1],whiten=True)
+        self.pca = PCA(n_components=self.z.raw.shape[1])        
+        #make z look like a unit gaussian
+        self.whitener.fit(self.z.centered())
+        #pick-up on directions of z_occam which are the most squashed relative to z
+        self.pca.fit(self.z_occam.cluster_centered.whitened(self.whitener)())
+        
+        #self.scaling_factor = 1 #required to set to 1 because self.transform needs scaling factor
+        self.scaling_factor = np.std(self.transform(self.z_occam.cluster_centered,scaling=False),axis=0)[None,:]
+        
+        
+        
+    def transform(self,vector,scaling=True):
+        """transform a vector in a way that unit vector has variance one"""
+        transformed_vector  = np.dot(vector.whitened(self.whitener)(),self.pca.components_.T)
+        if scaling is True:
+            transformed_vector = transformed_vector/self.scaling_factor
+        return transformed_vector
+            
+            
+        
 
         
