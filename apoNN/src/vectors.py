@@ -16,7 +16,8 @@ def project(data,direction):
 def get_vars(data,directions):
     return np.var(project(data,directions),axis=1)
 
-from sklearn.preprocessing import PolynomialFeatures
+
+
 
 class Vector():
     def __init__(self, raw, order=1,interaction_only=True):
@@ -24,7 +25,13 @@ class Vector():
         if order>1:
             poly = PolynomialFeatures(order,interaction_only,include_bias=False)
             self._raw = poly.fit_transform(self._raw)
-            
+
+    def __call__(self):
+        return self._raw
+
+    def whitened(self,whitener):
+        """method that takes a whitening PCA instance and returned a whitened vector"""
+        return Vector(whitener.transform(self._raw))
         
     @property
     def raw(self):
@@ -32,11 +39,11 @@ class Vector():
     
     @property
     def centered(self):
-        return self._raw -np.mean(self._raw,axis=0)
+        return Vector(self._raw -np.mean(self._raw,axis=0))
     
     @property
     def normalized(self):
-        return self.centered/np.max(np.abs(self.centered),0)
+        return Vector(self.centered()/np.max(np.abs(self.centered()),0))
     
 
 
@@ -98,7 +105,7 @@ class OccamLatentVector(LatentVector,Vector):
         for cluster in self.registry:
             cluster_idxs = self.registry[cluster]
             z[cluster_idxs]=self.raw[cluster_idxs]-self.raw[cluster_idxs].mean(axis=0)
-        return z
+        return Vector(z)
     
     
     
@@ -144,12 +151,12 @@ class LinearTransformation():
     
     @property
     def val(self):
-        return np.dot(self.y.centered.T,np.linalg.pinv(self.x.centered.T))
+        return np.dot(self.y.centered().T,np.linalg.pinv(self.x.centered().T))
     
     def predict(self,vector:Vector):
         #need to return a Vector. So ncenteredeed to make this take the correct shape
-        uncentered = np.dot(self.val,vector.centered.T).T
-        centered = uncentered+np.mean(self.y.raw,axis=0)
+        uncentered = np.dot(self.val,vector.centered().T).T
+        centered = uncentered+np.mean(self.y(),axis=0)
         return Vector(centered)                
         #return np.dot(self.val,vector.centered.T)
         
