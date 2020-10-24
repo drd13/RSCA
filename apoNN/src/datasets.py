@@ -351,7 +351,7 @@ class AspcapDataset(ApogeeDataset):
         well_behaved_bins = np.sum(dataset,axis=0)!=0 #we want to ignore those bins always at zero
         missing_values = dataset[idx]==0
         interpolating_candidates = filling_dataset[:,missing_values==False]
-        similarity = np.sum((interpolating_candidates - interpolating_candidates[idx])**2,axis=1)
+        similarity = np.sum((interpolating_candidates - dataset[idx,missing_values==False])**2,axis=1)
         similarity_argsort = list(similarity.argsort()) #1 because 0 is the spectra itself
         spectra = np.copy(dataset[idx])
         zeroes_exist=True
