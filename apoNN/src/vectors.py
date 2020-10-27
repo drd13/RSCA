@@ -99,7 +99,8 @@ class OccamLatentVector(LatentVector,Vector):
             cluster_idxs = np.where(cluster_names==cluster)
             cluster_registry[cluster] = cluster_idxs[0]
         return cluster_registry
-    
+
+   
     
     @property
     def cluster_centered(self):
@@ -113,6 +114,12 @@ class OccamLatentVector(LatentVector,Vector):
     @property
     def centered(self):
         return OccamLatentVector(self.cluster_names, raw = self._raw -np.mean(self._raw,axis=0))
+ 
+
+    def whitened(self,whitener):
+        """method that takes a whitening PCA instance and returned a whitened vector"""
+        return OccamLatentVector(self.cluster_names, raw = whitener.transform(self._raw))
+ 
  
 
     def only(self,cluster_name):
