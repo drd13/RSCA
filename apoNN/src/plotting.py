@@ -55,7 +55,7 @@ def get_combinations(len_cluster):
 
 
 
-def get_intracluster_distances(z,z_occam,leave_out=True):
+def get_intracluster_distances(z,z_occam,leave_out=True,use_relative_scaling=True):
     """Measures intracluster distances (between stars in the same cluster) after fitting and transforming.
     INPUTS
     ------
@@ -69,9 +69,9 @@ def get_intracluster_distances(z,z_occam,leave_out=True):
     distances = []
     for cluster in list(z_occam.registry.keys()):
         if leave_out is True:
-            fitter = vector.Fitter(z,z_occam.without(cluster))
+            fitter = vector.Fitter(z,z_occam.without(cluster),use_relative_scaling)
         else:
-            fitter = vector.Fitter(z,z_occam)
+            fitter = vector.Fitter(z,z_occam,use_relative_scaling)
         v_centered_occam = fitter.transform(z_occam.centered.only(cluster))
         combinations = get_combinations(len(v_centered_occam))
         distances_cluster = []
@@ -83,7 +83,7 @@ def get_intracluster_distances(z,z_occam,leave_out=True):
 
 
 
-def get_intercluster_distances(z,z_occam,leave_out=True,n_random = 200):
+def get_intercluster_distances(z,z_occam,leave_out=True,n_random = 200,use_relative_scaling=True):
     """Measures intercluster distances (between stars in a cluster and stars from the field) after fitting and transforming
     INPUTS
     ------
@@ -98,9 +98,9 @@ def get_intercluster_distances(z,z_occam,leave_out=True,n_random = 200):
     distances = []
     for cluster in list(z_occam.registry.keys()):
         if leave_out is True:
-            fitter = vector.Fitter(z,z_occam.without(cluster))
+            fitter = vector.Fitter(z,z_occam.without(cluster),use_relative_scaling=use_relative_scaling)
         else:
-            fitter = vector.Fitter(z,z_occam)
+            fitter = vector.Fitter(z,z_occam,use_relative_scaling=use_relative_scaling)
         v_centered_occam = fitter.transform(z_occam.centered.only(cluster))
         v = fitter.transform(fitter.z.centered)
         n_v = len(v)

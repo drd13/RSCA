@@ -224,7 +224,7 @@ class NonLinearTransformation():
         
         
 class Fitter():
-    def __init__(self,z:Vector,z_occam:OccamLatentVector):
+    def __init__(self,z:Vector,z_occam:OccamLatentVector,use_relative_scaling=True):
         self.z = z
         self.z_occam = z_occam
         self.whitener = PCA(n_components=self.z.raw.shape[1],whiten=True)
@@ -235,7 +235,12 @@ class Fitter():
         self.pca.fit(self.z_occam.cluster_centered.whitened(self.whitener)())
         
         #self.scaling_factor = 1 #required to set to 1 because self.transform needs scaling factor
-        self.scaling_factor = np.std(self.transform(self.z_occam.cluster_centered,scaling=False),axis=0)[None,:]
+        if use_relative_scaling is True:
+            self.scaling_factor = np.std(self.transform(self.z_occam.cluster_centered,scaling=False),axis=0)[None,:]
+            self.scaling_factor[self.scaling_factor>=1]=0.9999 #ensure that dimensions randomly greater than 1 are zeroed out            
+            self.scaling_factor = np.array([self.relative_modifier(std) for std in list(self.scaling_factor[0])])
+        else:
+            self.scaling_factor = np.std(self.transform(self.z_occam.cluster_centered,scaling=False),axis=0)[None,:]
         
         
         
@@ -246,7 +251,9 @@ class Fitter():
             transformed_vector = transformed_vector/self.scaling_factor
         return transformed_vector
             
+    
+    #make-this-a-class-method
+    @staticmethod
+    def relative_modifier(sigma1,sigma2=1):
+            return np.sqrt(np.abs(sigma1**2*sigma2**2/(sigma1**2-sigma2**2)))
             
-        
-
-        
