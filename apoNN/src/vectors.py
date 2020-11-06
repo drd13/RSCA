@@ -39,8 +39,17 @@ class Vector():
         return self._raw
     
     @property
-    def centered(self):
-        return Vector(self._raw -np.mean(self._raw,axis=0))
+    def centered(self,relative_to=None):
+        """
+        Shift vector to have zero mean.
+        
+        relative_to: vector
+            Vector to use for centering. If relative_to is None then vector is centered using its own mean.
+        """
+        if relative_to is None:
+            return Vector(self._raw -np.mean(self._raw,axis=0))
+        else:
+            return Vector(self._raw -np.mean(relative_to._raw,axis=0))
     
     @property
     def normalized(self):
@@ -110,11 +119,19 @@ class OccamLatentVector(LatentVector,Vector):
             z[cluster_idxs]=self.raw[cluster_idxs]-self.raw[cluster_idxs].mean(axis=0)
         return Vector(z)
 
-
     @property
-    def centered(self):
-        return OccamLatentVector(self.cluster_names, raw = self._raw -np.mean(self._raw,axis=0))
- 
+    def centered(self,relative_to=None):
+        """
+        Shift vector to have zero mean.
+        
+        relative_to: vector
+            Vector to use for centering. If relative_to is None then vector is centered using its own mean.
+        """
+        if relative_to is None:
+            return OccamLatentVector(self.cluster_names, raw = self._raw -np.mean(self._raw,axis=0))
+        else:
+            return OccamLatentVector(self.cluster_names, raw = self._raw -np.mean(relative_to._raw,axis=0))
+    
 
     def whitened(self,whitener):
         """method that takes a whitening PCA instance and returned a whitened vector"""
@@ -237,7 +254,7 @@ class Fitter():
         #self.scaling_factor = 1 #required to set to 1 because self.transform needs scaling factor
         if use_relative_scaling is True:
             self.scaling_factor = np.std(self.transform(self.z_occam.cluster_centered,scaling=False),axis=0)[None,:]
-            self.scaling_factor[self.scaling_factor>=1]=0.9999 #ensure that dimensions randomly greater than 1 are zeroed out            
+            self.scaling_factor[self.scaling_factor>=1]=0.9999 #ensure that dimensions randomly greater than 1 are zeroed out           
             self.scaling_factor = np.array([self.relative_modifier(std) for std in list(self.scaling_factor[0])])
         else:
             self.scaling_factor = np.std(self.transform(self.z_occam.cluster_centered,scaling=False),axis=0)[None,:]
@@ -252,7 +269,6 @@ class Fitter():
         return transformed_vector
             
     
-    #make-this-a-class-method
     @staticmethod
     def relative_modifier(sigma1,sigma2=1):
             return np.sqrt(np.abs(sigma1**2*sigma2**2/(sigma1**2-sigma2**2)))
