@@ -79,7 +79,7 @@ class Evaluator(abc.ABC):
         stars_per_cluster = []
         for i in range(len(distances)):
             doppelganger_rate = np.mean(random_distances[i]<np.median(distances[i]))
-            cluster_name = list(registry)[i]
+            cluster_name = sorted(registry)[i]
             num_stars = len(registry[cluster_name])
             doppelganger_rates.append(doppelganger_rate)
             stars_per_cluster.append(num_stars)
@@ -92,7 +92,7 @@ class Evaluator(abc.ABC):
     @property
     def stars_per_cluster(self):
         """list containing number of stars in each cluster (clusters ordered in the same way as doppelganger rate)"""
-        return [len(self.registry[cluster]) for cluster in list(self.registry)]
+        return [len(self.registry[cluster]) for cluster in sorted(self.registry)]
     
     @property
     def weighted_average(self):
@@ -118,7 +118,7 @@ class Evaluator(abc.ABC):
             True corresponds to excluding clusters being evaluated from training so as to avoid overfitting 
         """
         distances = []
-        for cluster in list(z_occam.registry.keys()):
+        for cluster in sorted(z_occam.registry):
             if leave_out is True:
                 fitter = vector.Fitter(z,z_occam.without(cluster),use_relative_scaling)
             else:
@@ -147,7 +147,7 @@ class Evaluator(abc.ABC):
         n_random: Number of field stars each cluster star is compared too.
         """
         distances = []
-        for cluster in list(z_occam.registry.keys()):
+        for cluster in sorted(z_occam.registry):
             if leave_out is True:
                 fitter = vector.Fitter(z,z_occam.without(cluster),use_relative_scaling=use_relative_scaling)
             else:
@@ -181,7 +181,7 @@ class Evaluator(abc.ABC):
             Whether to use a relative scaling in the fitter object.
         """
         distances = []
-        for cluster in list(z_occam.registry.keys()):
+        for cluster in sorted(z_occam.registry):
             if leave_out is True:
                 fitter = vector.Fitter(z,z_occam.without(cluster),use_relative_scaling=use_relative_scaling)
             else:
@@ -196,6 +196,21 @@ class Evaluator(abc.ABC):
                 distances.append(np.linalg.norm(v[random_idx]-v[random_idx2]))
 
         return distances
+    
+    
+    
+    def plot_cluster(self,cluster_name):
+        plt.title(cluster_name)
+        index_cluster = sorted(self.registry).index(cluster_name)
+        plt.hist(self.distances[index_cluster],alpha=0.5,density=True,label="intercluster")
+        plt.hist(self.random_distances[index_cluster],alpha=0.5,bins=200,density=True,label="random")
+        plt.legend()
+        plt.xlim(0,np.max(self.distances[index_cluster])*2)
+        plt.xlabel("distance")
+        plt.ylabel("probability")
+        plt.axvline(x=np.median(self.distances[index_cluster]),c="red",linestyle  = "--")
+        
+
 
 
     
