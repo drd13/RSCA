@@ -54,7 +54,7 @@ class Evaluator(abc.ABC):
     def get_distances(self):
         pass
     
-    
+
     @staticmethod
     def get_combinations(len_cluster):
         """
@@ -84,10 +84,26 @@ class Evaluator(abc.ABC):
             doppelganger_rates.append(doppelganger_rate)
             stars_per_cluster.append(num_stars)
 
-        weighted_average = np.average(doppelganger_rates,weights=stars_per_cluster)
-        average = np.average(doppelganger_rates)
-        return weighted_average,average
+        #weighted_average = np.average(doppelganger_rates,weights=stars_per_cluster)
+        #average = np.average(doppelganger_rates)
+        return doppelganger_rates
     
+    
+    @property
+    def stars_per_cluster(self):
+        """list containing number of stars in each cluster (clusters ordered in the same way as doppelganger rate)"""
+        return [len(self.registry[cluster]) for cluster in list(self.registry)]
+    
+    @property
+    def weighted_average(self):
+        """average doppelganger rate where clusters are weighed based on number of stars"""
+        return np.average(self.doppelganger_rates, weights=self.stars_per_cluster)
+    
+    @property
+    def average(self):
+        """average doppelganger rate where each cluster is weighted equally regardless of size"""
+        return np.average(self.doppelganger_rates)
+       
     
     @staticmethod
     def get_intracluster_distances(z,z_occam,leave_out=True,use_relative_scaling=True):
@@ -137,7 +153,7 @@ class Evaluator(abc.ABC):
             else:
                 fitter = vector.Fitter(z,z_occam,use_relative_scaling=use_relative_scaling)
             v_centered_occam = fitter.transform(z_occam.centered().only(cluster))
-            v = fitter.transform(fitter.z.centered())
+            v = fitter.transform(fitter.z.centered(z_occam))
             n_v = len(v)
             distances_cluster = []
             for idx in np.arange(len(v_centered_occam)):
@@ -202,10 +218,11 @@ class PcaEvaluator(Evaluator):
         """
         self.X = X
         self.X_occam = X_occam
+        self.registry = X_occam.registry
         self.leave_out = leave_out
         self.n_components = n_components
         self.distances,self.random_distances = self.get_distances(self.X,self.X_occam,self.n_components,self.leave_out)
-        self.weighted_average,self.average = self.get_doppelganger_rate(self.distances,self.random_distances,self.X_occam.registry)
+        self.doppelganger_rates = self.get_doppelganger_rate(self.distances,self.random_distances,self.X_occam.registry)
         
     def get_distances(self,X,X_occam,n_components,leave_out=True):
         compressor = sklearn.decomposition.PCA(n_components=n_components,whiten=False)#z.raw.shape[1],whiten=True)
@@ -236,10 +253,11 @@ class AbundanceEvaluator(Evaluator):
         """
         self.Y = Y
         self.Y_occam = Y_occam
+        self.registry = self.Y_occam.registry
         self.leave_out = leave_out
         self.distances,self.random_distances = self.get_distances(self.Y,self.Y_occam,self.leave_out)
-        self.weighted_average,self.average = self.get_doppelganger_rate(self.distances,self.random_distances,self.Y_occam.registry)
-        
+        self.doppelganger_rates = self.get_doppelganger_rate(self.distances,self.random_distances,self.Y_occam.registry)
+
     def get_distances(self,Y,Y_occam,leave_out=True):
         distances = Evaluator.get_intracluster_distances(Y,Y_occam,use_relative_scaling=True,leave_out = leave_out)
         random_distances = Evaluator.get_intercluster_distances(Y,Y_occam,n_random=1000,use_relative_scaling=True,leave_out = leave_out)
