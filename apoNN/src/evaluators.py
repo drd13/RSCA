@@ -186,22 +186,23 @@ class Evaluator(abc.ABC):
                 fitter = vector.Fitter(z,z_occam.without(cluster),use_relative_scaling=use_relative_scaling)
             else:
                 fitter = vector.Fitter(z,z_occam,use_relative_scaling=use_relative_scaling)
-            v = fitter.transform(fitter.z.centered())
+            v = fitter.transform(fitter.z.centered(z_occam))
             n_v = len(v)
             distances_cluster = []
             for _ in np.arange(n_random):
                 random_idx = random.randint(0,n_v-1)
                 random_idx2 = random.randint(0,n_v-1)
 
-                distances.append(np.linalg.norm(v[random_idx]-v[random_idx2]))
+                distances_cluster.append(np.linalg.norm(v[random_idx]-v[random_idx2]))
+            distances.append(distances_cluster)
 
         return distances
     
     
     
     def plot_cluster(self,cluster_name):
-        plt.title(cluster_name)
         index_cluster = sorted(self.registry).index(cluster_name)
+        plt.title(f"{cluster_name} ({self.stars_per_cluster[index_cluster]} stars), rate: {self.doppelganger_rates[index_cluster]}")
         plt.hist(self.distances[index_cluster],alpha=0.5,density=True,label="intercluster")
         plt.hist(self.random_distances[index_cluster],alpha=0.5,bins=200,density=True,label="random")
         plt.legend()
@@ -250,6 +251,17 @@ class PcaEvaluator(Evaluator):
         return distances,random_distances
     
     
+class PcaFieldEvaluator(Evaluator):
+    def get_distances(self,X,X_occam,n_components,leave_out=True):
+        compressor = sklearn.decomposition.PCA(n_components=n_components,whiten=False)#z.raw.shape[1],whiten=True)
+        compressor.fit(X())
+        Z  = vector.Vector(compressor.transform(X()))
+        Z_occam = vector.OccamLatentVector(cluster_names=X_occam.cluster_names, raw= compressor.transform(X_occam()))
+
+        distances = Evaluator.get_intracluster_distances(Z,Z_occam,use_relative_scaling=True,leave_out = leave_out)
+        random_distances = Evaluator.get_field_distances(Z,Z_occam,n_random=1000,use_relative_scaling=True,leave_out = leave_out)
+        return distances,random_distances
+        
 
 
 class AbundanceEvaluator(Evaluator):
@@ -283,4 +295,7 @@ class AbundanceFieldEvaluator(AbundanceEvaluator):
     def get_distances(self,Y,Y_occam,leave_out=True):
         distances = Evaluator.get_intracluster_distances(Y,Y_occam,use_relative_scaling=True,leave_out = leave_out)
         random_distances = Evaluator.get_field_distances(Y,Y_occam,n_random=1000,use_relative_scaling=True,leave_out = leave_out)
-        return distances,random_distances    
+        return distances,random_distance
+    
+    
+    
