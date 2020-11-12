@@ -236,13 +236,31 @@ class NonLinearTransformation():
         return Vector(y_pred)                
         #return np.dot(self.val,vector.centered.T)
 
+
+class Normalizer():
+    def __init__(self):
+        """Applies rescaling rather than whitening."""
+        self.scaling_factors = None
         
+    def fit(self,z):
+        self.scaling_factor = np.std(z,axis=0)[None,:]
+        
+    def transform(self,z):
+        return z/self.scaling_factor        
+        #return z
         
 class Fitter():
-    def __init__(self,z:Vector,z_occam:OccamLatentVector,use_relative_scaling=True):
+    def __init__(self,z:Vector,z_occam:OccamLatentVector,use_relative_scaling=True, use_whitening=True):
+        """
+        use_whitening: Boolean
+            When True use whitening, when False rescale each dimension independently.
+        """
         self.z = z
         self.z_occam = z_occam
-        self.whitener = PCA(n_components=self.z.raw.shape[1],whiten=True)
+        if use_whitening is True:
+            self.whitener = PCA(n_components=self.z.raw.shape[1],whiten=True)
+        else:
+            self.whitener = Normalizer()
         self.pca = PCA(n_components=self.z.raw.shape[1])        
         #make z look like a unit gaussian
         self.whitener.fit(self.z.centered().raw)
@@ -257,17 +275,14 @@ class Fitter():
         else:
             self.scaling_factor = np.std(self.transform(self.z_occam.cluster_centered,scaling=False),axis=0)[None,:]
         
-        
-        
     def transform(self,vector,scaling=True):
         """transform a vector in a way that unit vector has variance one"""
         transformed_vector  = np.dot(vector.whitened(self.whitener)(),self.pca.components_.T)
         if scaling is True:
             transformed_vector = transformed_vector/self.scaling_factor
         return transformed_vector
-            
-    
-    @staticmethod
-    def relative_modifier(sigma1,sigma2=1):
-            return np.sqrt(np.abs(sigma1**2*sigma2**2/(sigma1**2-sigma2**2)))
-            
+
+     @staticmethod
+     def relative_modifier(sigma1,sigma2=1):
+        return np.sqrt(np.abs(sigma1**2*sigma2**2/(sigma1**2-sigma2**2)))
+  
