@@ -250,7 +250,7 @@ class Normalizer():
         #return z
         
 class Fitter():
-    def __init__(self,z:Vector,z_occam:OccamLatentVector,use_relative_scaling=True, use_whitening=True):
+    def __init__(self,z:Vector,z_occam:OccamLatentVector,use_relative_scaling=True, use_whitening=True,is_pooled=True):
         """
         use_whitening: Boolean
             When True use whitening, when False rescale each dimension independently.
@@ -269,7 +269,8 @@ class Fitter():
         
         #self.scaling_factor = 1 #required to set to 1 because self.transform needs scaling factor
         if use_relative_scaling is True:
-            self.scaling_factor = np.std(self.transform(self.z_occam.cluster_centered,scaling=False),axis=0)[None,:]
+            self.scaling_factor = self.std(z_occam,is_pooled)
+            #self.scaling_factor = np.std(self.transform(self.z_occam.cluster_centered,scaling=False),axis=0)[None,:]
             self.scaling_factor[self.scaling_factor>=1]=0.9999 #ensure that dimensions randomly greater than 1 are zeroed out           
             self.scaling_factor = np.array([self.relative_modifier(std) for std in list(self.scaling_factor[0])])
         else:
@@ -280,9 +281,34 @@ class Fitter():
         transformed_vector  = np.dot(vector.whitened(self.whitener)(),self.pca.components_.T)
         if scaling is True:
             transformed_vector = transformed_vector/self.scaling_factor
-        return transformed_vector
 
-     @staticmethod
-     def relative_modifier(sigma1,sigma2=1):
+        if vector.__class__ is OccamLatentVector:
+            return vector.__class__(cluster_names = vector.cluster_names, raw = transformed_vector)
+        else:
+            return vector.__class__(raw=transformed_vector)
+
+    def pooled_std(self,z:OccamLatentVector,ddof):
+        num_stars = []
+        variances = []
+        whitened_z = self.transform(self.z_occam.cluster_centered,scaling=False)()
+        for cluster in sorted(z.registry):
+            cluster_idx = z.registry[cluster]
+            num_stars.append(len(cluster_idx))
+            variances.append(np.var(whitened_z[cluster_idx],axis=0,ddof=ddof))
+                       
+        variances = np.array(variances)
+        num_stars = np.array(num_stars)
+        return (((np.dot(num_stars-1,variances)/(np.sum(num_stars)-len(num_stars))))**0.5)[None,:]
+
+    def std(self,z:Vector,is_pooled=False,ddof=1):
+        if is_pooled is True:
+            return self.pooled_std(z,ddof) 
+        else:
+            return np.std(self.transform(self.z_occam.cluster_centered,scaling=False)(),axis=0,ddof=ddof)[None,:]
+
+
+
+    @staticmethod
+    def relative_modifier(sigma1,sigma2=1):
         return np.sqrt(np.abs(sigma1**2*sigma2**2/(sigma1**2-sigma2**2)))
   
