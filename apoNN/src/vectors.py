@@ -293,8 +293,10 @@ class Fitter():
         whitened_z = self.transform(self.z_occam.cluster_centered,scaling=False)()
         for cluster in sorted(z.registry):
             cluster_idx = z.registry[cluster]
-            num_stars.append(len(cluster_idx))
-            variances.append(np.var(whitened_z[cluster_idx],axis=0,ddof=ddof))
+            #print(f"{len(cluster_idx)} stars")
+            if len(cluster_idx)>1:
+                num_stars.append(len(cluster_idx))
+                variances.append(np.var(whitened_z[cluster_idx],axis=0,ddof=ddof))
                        
         variances = np.array(variances)
         num_stars = np.array(num_stars)

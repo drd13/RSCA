@@ -251,9 +251,6 @@ class PcaEvaluator(Evaluator):
         return distances,random_distances
     
     
-
-    
-    
 class PcaFieldEvaluator(Evaluator):
     def get_distances(self,X,X_occam,n_components,leave_out=True):
         compressor = sklearn.decomposition.PCA(n_components=n_components,whiten=False)#z.raw.shape[1],whiten=True)
@@ -266,7 +263,8 @@ class PcaFieldEvaluator(Evaluator):
         return distances,random_distances
         
 
-
+    
+    
 class AbundanceEvaluator(Evaluator):
     def __init__(self,Y,Y_occam,leave_out=True):
         """Method evaluating doppelganger rate
@@ -378,7 +376,7 @@ class PcaAutoScalingEvaluator(Evaluator):
         distances = []
         for cluster in sorted(z_occam.registry):
             if leave_out is True:
-                fitter = vector.Fitter(z_occam,z_occam.without(cluster),use_relative_scaling)
+                fitter = vector.Fitter(z_occam.without(cluster),z_occam.without(cluster),use_relative_scaling)
             else:
                 fitter = vector.Fitter(z_occam,z_occam,use_relative_scaling)
             v_centered_occam = fitter.transform(z_occam.centered().only(cluster))()
@@ -465,7 +463,7 @@ class AbundanceAutoScalingEvaluator(AbundanceEvaluator):
         distances = []
         for cluster in sorted(z_occam.registry):
             if leave_out is True:
-                fitter = vector.Fitter(z_occam,z_occam.without(cluster),use_relative_scaling)
+                fitter = vector.Fitter(z_occam.without(cluster),z_occam.without(cluster),use_relative_scaling)
             else:
                 fitter = vector.Fitter(z_occam,z_occam,use_relative_scaling)
             v_centered_occam = fitter.transform(z_occam.centered().only(cluster))()
