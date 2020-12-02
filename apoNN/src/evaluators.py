@@ -318,7 +318,7 @@ class AbundanceFieldEvaluator(AbundanceEvaluator):
     
     
     
-class PcaAutoScalingEvaluator(Evaluator):
+class PcaAutoScalingEvaluator(PcaEvaluator):
     def get_distances(self,X,X_occam,n_components,leave_out=True):
         compressor = sklearn.decomposition.PCA(n_components=n_components,whiten=False)#z.raw.shape[1],whiten=True)
         compressor.fit(X())
