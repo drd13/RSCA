@@ -8,6 +8,7 @@ from sklearn.decomposition import PCA
 from astropy.io import fits
 from scipy.stats import median_absolute_deviation as mad
 
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
@@ -383,8 +384,8 @@ class FitterMADAbundances():
     def relative_modifier(sigma1,sigma2=1):
         return np.sqrt(np.abs(sigma1**2*sigma2**2/(sigma1**2-sigma2**2)))
                           
-                        
-        
+
+    
 class Fitter():
     def __init__(self,z:Vector,z_occam:OccamLatentVector,use_relative_scaling=True, use_whitening=True,is_pooled=True):
         """
@@ -398,6 +399,8 @@ class Fitter():
         else:
             self.whitener = Normalizer()
         self.pca = PCA(n_components=self.z.raw.shape[1])        
+        #self.pca = FastICA(n_components=self.z.raw.shape[1],max_iter=500,whiten=False) 
+        
         #make z look like a unit gaussian
         self.whitener.fit(self.z.centered().raw)
         #pick-up on directions of z_occam which are the most squashed relative to z
@@ -449,4 +452,31 @@ class Fitter():
     @staticmethod
     def relative_modifier(sigma1,sigma2=1):
         return np.sqrt(np.abs(sigma1**2*sigma2**2/(sigma1**2-sigma2**2)))
-  
+    
+    
+    
+class SimpleFitter(Fitter):                        
+    def __init__(self,z:Vector,z_occam:OccamLatentVector):
+        self.z = z
+        self.z_occam = z_occam
+        self.pca = PCA(n_components=self.z.raw.shape[1])        
+        self.pca.fit(self.z_occam.cluster_centered())
+        self.intracluster_scaling_factor = np.std(self.transform(self.z_occam.cluster_centered,scaling=False)(),axis=0)[None,:]
+        self.intercluster_scaling_factor = np.std(self.transform(self.z_occam.centered(),scaling=False)(),axis=0)[None,:]
+        scaling_factor = []
+        for i in range(len(self.intracluster_scaling_factor)):
+            scaling_factor.append(self.relative_modifier(self.intracluster_scaling_factor[i],self.intercluster_scaling_factor[i]))
+        self.scaling_factor = np.array(scaling_factor)
+        
+        
+        
+    def transform(self,vector,scaling=True):
+        """transform a vector in a way that unit vector has variance one"""
+        transformed_vector  = np.dot(vector(),self.pca.components_.T)
+        if scaling is True:
+            transformed_vector = transformed_vector/self.scaling_factor
+
+        if vector.__class__ is OccamLatentVector:
+            return vector.__class__(cluster_names = vector.cluster_names, raw = transformed_vector)
+        else:
+            return vector.__class__(raw=transformed_vector)
