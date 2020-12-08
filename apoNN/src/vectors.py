@@ -263,131 +263,11 @@ class Normalizer():
         #return z
         
         
-        
-class FitterAbundances():
-    """This is a fitter that carries out the rescaling in the original basis of the representation"""
-    def __init__(self,z:Vector,z_occam:OccamLatentVector,use_relative_scaling=True, use_whitening=False,is_pooled=True):
-        self.z = z
-        self.z_occam = z_occam
-        if use_whitening is True:
-            self.whitener = PCA(n_components=self.z.raw.shape[1],whiten=True)
-        else:
-            self.whitener = Normalizer()
-            
-        self.whitener.fit(self.z.centered().raw)
-        #self.scaling_factor = 1 #required to set to 1 because self.transform needs scaling factor
-        if use_relative_scaling is True:
-            self.scaling_factor = self.std(z_occam,is_pooled)
-            self.scaling_factor[self.scaling_factor>=1]=0.9999 #ensure that dimensions randomly greater than 1 are zeroed out           
-            self.scaling_factor = np.array([self.relative_modifier(std) for std in list(self.scaling_factor[0])])
-        else:
-
-            self.scaling_factor = np.std(self.transform(self.z_occam.cluster_centered,scaling=False)(),axis=0)[None,:]
-
-
-            
-    def transform(self,vector,scaling=True):
-        """transform a vector in a way that unit vector has variance one"""
-        transformed_vector  = vector.whitened(self.whitener)()
-        if scaling is True:
-            transformed_vector = transformed_vector/self.scaling_factor
-
-        if vector.__class__ is OccamLatentVector:
-            return vector.__class__(cluster_names = vector.cluster_names, raw = transformed_vector)
-        else:
-            return vector.__class__(raw=transformed_vector)
-
-    def pooled_std(self,z:OccamLatentVector,ddof):
-        num_stars = []
-        variances = []
-        whitened_z = self.transform(self.z_occam.cluster_centered,scaling=False)()
-        for cluster in sorted(z.registry):
-            cluster_idx = z.registry[cluster]
-            #print(f"{len(cluster_idx)} stars")
-            if len(cluster_idx)>1:
-                num_stars.append(len(cluster_idx))
-                variances.append(np.var(whitened_z[cluster_idx],axis=0,ddof=ddof))
-                       
-        variances = np.array(variances)
-        num_stars = np.array(num_stars)
-        return (((np.dot(num_stars-1,variances)/(np.sum(num_stars)-len(num_stars))))**0.5)[None,:]
-
-    def std(self,z:Vector,is_pooled=False,ddof=1):
-        if is_pooled is True:
-            return self.pooled_std(z,ddof) 
-        else:
-            return np.std(self.transform(self.z_occam.cluster_centered,scaling=False)(),axis=0,ddof=ddof)[None,:]
-
-
-
-    @staticmethod
-    def relative_modifier(sigma1,sigma2=1):
-        return np.sqrt(np.abs(sigma1**2*sigma2**2/(sigma1**2-sigma2**2)))
-              
-               
-class FitterMADAbundances():
-    """This is a fitter that carries out the rescaling in the original basis of the representation. This fitter uses the mean absolute deviation to get more robust estimates of standard deviations"""
-    def __init__(self,z:Vector,z_occam:OccamLatentVector,use_relative_scaling=True, use_whitening=False,is_pooled=True):
-        self.z = z
-        self.z_occam = z_occam
-        if use_whitening is True:
-            self.whitener = PCA(n_components=self.z.raw.shape[1],whiten=True)
-        else:
-            self.whitener = Normalizer()
-            
-        self.whitener.fit(self.z.centered().raw)
-        #self.scaling_factor = 1 #required to set to 1 because self.transform needs scaling factor
-        if use_relative_scaling is True:
-            self.scaling_factor = self.std(z_occam,is_pooled)
-            self.scaling_factor[self.scaling_factor>=1]=0.9999 #ensure that dimensions randomly greater than 1 are zeroed out           
-            self.scaling_factor = np.array([self.relative_modifier(std) for std in list(self.scaling_factor[0])])
-        else:
-            self.scaling_factor = mad(self.transform(self.z_occam.cluster_centered,scaling=False)(),axis=0)[None,:]
-
-
-            
-    def transform(self,vector,scaling=True):
-        """transform a vector in a way that unit vector has variance one"""
-        transformed_vector  = vector.whitened(self.whitener)()
-        if scaling is True:
-            transformed_vector = transformed_vector/self.scaling_factor
-
-        if vector.__class__ is OccamLatentVector:
-            return vector.__class__(cluster_names = vector.cluster_names, raw = transformed_vector)
-        else:
-            return vector.__class__(raw=transformed_vector)
-
-    def pooled_std(self,z:OccamLatentVector,ddof):
-        num_stars = []
-        variances = []
-        whitened_z = self.transform(self.z_occam.cluster_centered,scaling=False)()
-        for cluster in sorted(z.registry):
-            cluster_idx = z.registry[cluster]
-            #print(f"{len(cluster_idx)} stars")
-            if len(cluster_idx)>1:
-                num_stars.append(len(cluster_idx))
-                variances.append(mad(whitened_z[cluster_idx],axis=0)**2)
-                       
-        variances = np.array(variances)
-        num_stars = np.array(num_stars)
-        return (((np.dot(num_stars-1,variances)/(np.sum(num_stars)-len(num_stars))))**0.5)[None,:]
-
-    def std(self,z:Vector,is_pooled=False,ddof=1):
-        if is_pooled is True:
-            return self.pooled_std(z,ddof) 
-        else:
-            return np.mad(self.transform(self.z_occam.cluster_centered,scaling=False)(),axis=0,ddof=ddof)[None,:]
-
-
-
-    @staticmethod
-    def relative_modifier(sigma1,sigma2=1):
-        return np.sqrt(np.abs(sigma1**2*sigma2**2/(sigma1**2-sigma2**2)))
-                          
+ 
 
     
 class Fitter():
-    def __init__(self,z:Vector,z_occam:OccamLatentVector,use_relative_scaling=True, use_whitening=True,is_pooled=True):
+    def __init__(self,z:Vector,z_occam:OccamLatentVector,use_relative_scaling=True, use_whitening=True,is_pooled=True,is_robust=True):
         """
         use_whitening: Boolean
             When True use whitening, when False rescale each dimension independently.
@@ -398,6 +278,14 @@ class Fitter():
             self.whitener = PCA(n_components=self.z.raw.shape[1],whiten=True)
         else:
             self.whitener = Normalizer()
+            
+        if is_robust is True:
+            self.std = mad #calculate std using meadian absolute deviation
+        else:
+            def std_ddfof1(x,axis=0,ddof=1):
+                return np.std(x,axis=axis,ddof=ddof)
+            self.std = std_ddfof1            
+         
         self.pca = PCA(n_components=self.z.raw.shape[1])        
         #self.pca = FastICA(n_components=self.z.raw.shape[1],max_iter=500,whiten=False) 
         
@@ -408,12 +296,12 @@ class Fitter():
         
         #self.scaling_factor = 1 #required to set to 1 because self.transform needs scaling factor
         if use_relative_scaling is True:
-            self.scaling_factor = self.std(z_occam,is_pooled)
+            self.scaling_factor = self.get_scaling(z_occam,is_pooled)
             #self.scaling_factor = np.std(self.transform(self.z_occam.cluster_centered,scaling=False),axis=0)[None,:]
             self.scaling_factor[self.scaling_factor>=1]=0.9999 #ensure that dimensions randomly greater than 1 are zeroed out           
             self.scaling_factor = np.array([self.relative_modifier(std) for std in list(self.scaling_factor[0])])
         else:
-            self.scaling_factor = np.std(self.transform(self.z_occam.cluster_centered,scaling=False)(),axis=0)[None,:]
+            self.scaling_factor = self.std(self.transform(self.z_occam.cluster_centered,scaling=False)(),axis=0)[None,:]
         
     def transform(self,vector,scaling=True):
         """transform a vector in a way that unit vector has variance one"""
@@ -435,17 +323,18 @@ class Fitter():
             #print(f"{len(cluster_idx)} stars")
             if len(cluster_idx)>1:
                 num_stars.append(len(cluster_idx))
-                variances.append(np.var(whitened_z[cluster_idx],axis=0,ddof=ddof))
+                variances.append(self.std(whitened_z[cluster_idx],axis=0)**2)
                        
         variances = np.array(variances)
         num_stars = np.array(num_stars)
         return (((np.dot(num_stars-1,variances)/(np.sum(num_stars)-len(num_stars))))**0.5)[None,:]
 
-    def std(self,z:Vector,is_pooled=False,ddof=1):
+
+    def get_scaling(self,z:Vector,is_pooled=False,ddof=1):
         if is_pooled is True:
             return self.pooled_std(z,ddof) 
         else:
-            return np.std(self.transform(self.z_occam.cluster_centered,scaling=False)(),axis=0,ddof=ddof)[None,:]
+            return self.std(self.transform(self.z_occam.cluster_centered,scaling=False)(),axis=0,ddof=ddof)[None,:]
 
 
 
@@ -453,6 +342,48 @@ class Fitter():
     def relative_modifier(sigma1,sigma2=1):
         return np.sqrt(np.abs(sigma1**2*sigma2**2/(sigma1**2-sigma2**2)))
     
+    
+    
+       
+class FitterAbundances(Fitter):
+    """This is a fitter that carries out the rescaling in the original basis of the representation"""
+    def __init__(self,z:Vector,z_occam:OccamLatentVector,use_relative_scaling=True, use_whitening=False,is_pooled=True,is_robust=True):
+        self.z = z
+        self.z_occam = z_occam
+        if use_whitening is True:
+            self.whitener = PCA(n_components=self.z.raw.shape[1],whiten=True)
+        else:
+            self.whitener = Normalizer()
+            
+        if is_robust is True:
+            self.std = mad #calculate std using meadian absolute deviation
+        else:
+            def std_ddfof1(x,axis=0,ddof=1):
+                return np.std(x,axis=axis,ddof=ddof)
+            self.std = std_ddfof1
+            
+        self.whitener.fit(self.z.centered().raw)
+        #self.scaling_factor = 1 #required to set to 1 because self.transform needs scaling factor
+        if use_relative_scaling is True:
+            self.scaling_factor = self.get_scaling(z_occam,is_pooled)
+            self.scaling_factor[self.scaling_factor>=1]=0.9999 #ensure that dimensions randomly greater than 1 are zeroed out           
+            self.scaling_factor = np.array([self.relative_modifier(std) for std in list(self.scaling_factor[0])])
+        else:
+
+            self.scaling_factor = self.std(self.transform(self.z_occam.cluster_centered,scaling=False)(),axis=0)[None,:]
+
+
+            
+    def transform(self,vector,scaling=True):
+        """transform a vector in a way that unit vector has variance one"""
+        transformed_vector  = vector.whitened(self.whitener)()
+        if scaling is True:
+            transformed_vector = transformed_vector/self.scaling_factor
+
+        if vector.__class__ is OccamLatentVector:
+            return vector.__class__(cluster_names = vector.cluster_names, raw = transformed_vector)
+        else:
+            return vector.__class__(raw=transformed_vector)
     
     
 class SimpleFitter(Fitter):                        
