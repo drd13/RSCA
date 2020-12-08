@@ -4,7 +4,7 @@ import apogee.tools.read as apread
 import apogee.tools.path as apogee_path
 
 
-def prepare_occam_allStar(occam_kept,allStar):
+def prepare_occam_allStar(occam_kept,allStar,excluded_apogee_id= ['2M19203303+3755558']):
     """
     Given a list of of occam_ids, generates a filtered APOGEE allStar containing only those OCCAM stars.
     Also filters out stars within allStar without spectra. 
@@ -30,7 +30,10 @@ def prepare_occam_allStar(occam_kept,allStar):
             apogee_idx = list_apogee_ids.index(idx)
             apogee_id,loc,telescope = allStar[apogee_idx]["APOGEE_ID"],allStar[apogee_idx]["FIELD"], allStar[apogee_idx]["TELESCOPE"]
             apread.aspcapStar(loc_id=str(loc),apogee_id=apogee_id,telescope=telescope,ext=1)
-            apogee_idxs.append(apogee_idx)
+            if apogee_id not in excluded_apogee_id:
+                apogee_idxs.append(apogee_idx)
+            else:
+                apogee_idxs.append(-1)
         except:
             apogee_idxs.append(-1)
     apogee_idxs = np.array(apogee_idxs)
