@@ -36,6 +36,12 @@ def get_window(elem):
     apath._APOGEE_REDUX = current_apogee_redux
     return (start,end)
 
+def get_lines(elem,asIndex=False):
+    current_apogee_redux = apath._APOGEE_REDUX
+    apath.change_dr(12)
+    lines = apwindow.lines(elem,asIndex=asIndex)
+    apath._APOGEE_REDUX = current_apogee_redux
+    return lines
 
 def get_mask_elem(elem,trimmed=0):
     """trimmed: number of indexes to trim off of each windows edges"""
