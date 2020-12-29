@@ -94,6 +94,11 @@ def get_intercluster_distances(z,z_occam,leave_out=True,n_random = 200,use_relat
     leave_out: Boolean
         True corresponds to excluding clusters being evaluated from training so as to avoid overfitting 
     n_random: Number of field stars each cluste star is compared too.
+    
+    OUTPUTS:
+    --------
+    distances: np.array
+        Array of shape number_of_clusters*n_random containing distances between stars within clusters and random stars in z
     """
     distances = []
     for cluster in list(z_occam.registry.keys()):
@@ -111,5 +116,43 @@ def get_intercluster_distances(z,z_occam,leave_out=True,n_random = 200,use_relat
                 distances_cluster.append(np.linalg.norm(v_centered_occam[idx]-v[random_idx]))
 
         distances.append(distances_cluster)
+    return distances
+
+
+
+def get_field_distances(z,z_occam,leave_out=True,n_random = 20000,use_relative_scaling=True):
+    """Measures intercluster distances (between stars in a cluster and stars from the field) after fitting and transforming
+    INPUTS
+    ------
+    z: apoNN.vector.Vector
+        A vector containing the field star dataset
+    z_occam: vector.OccamLatentVector
+        A vector containing the occam cluster stars
+    leave_out: Boolean
+        True corresponds to excluding clusters being evaluated from training so as to avoid overfitting 
+    n_random: Number of field stars each cluste star is compared too.
+    use_relative_scaling: Boolean
+        Whether to use a relative scaling in the fitter object.
+        
+    OUTPUTS:
+    --------
+    distances: np.array
+        Array of shape number_of_clusters*n_random containing distances to field stars
+    """
+    distances = []
+    for cluster in list(z_occam.registry.keys()):
+        if leave_out is True:
+            fitter = vector.Fitter(z,z_occam.without(cluster),use_relative_scaling=use_relative_scaling)
+        else:
+            fitter = vector.Fitter(z,z_occam,use_relative_scaling=use_relative_scaling)
+        v = fitter.transform(fitter.z.centered)
+        n_v = len(v)
+        distances_cluster = []
+        for _ in np.arange(n_random):
+            random_idx = random.randint(0,n_v-1)
+            random_idx2 = random.randint(0,n_v-1)
+
+            distances.append(np.linalg.norm(v[random_idx]-v[random_idx2]))
+
     return distances
 
