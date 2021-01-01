@@ -24,9 +24,6 @@ class Vector():
             poly = PolynomialFeatures(order,interaction_only,include_bias=False)
             self._val = poly.fit_transform(self._val)
 
-    def __call__(self):
-        return self._val
-
     def whitened(self,whitener):
         """method that takes a whitening PCA instance and returned a whitened vector"""
         return Vector(whitener.transform(self._val))

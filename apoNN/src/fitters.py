@@ -31,7 +31,7 @@ class BaseFitter(abc.ABC):
         """estimates intacluster standard deviation using a pooled variance estimator"""
         num_stars = []
         variances = []
-        whitened_z = self.transform(self.z_occam.cluster_centered,scaling=False)()
+        whitened_z = self.transform(self.z_occam.cluster_centered,scaling=False).val
         for cluster in sorted(z.registry):
             cluster_idx = z.registry[cluster]
             #print(f"{len(cluster_idx)} stars")
@@ -106,13 +106,13 @@ class StandardFitter(BaseFitter):
         self.pca = PCA(n_components=self.z.val.shape[1]) #pca is used for performing a change of basis    
         
         self.whitener.fit(self.z.centered().val) #we learn a whitening transform of our dataset
-        self.pca.fit(self.z_occam.cluster_centered.whitened(self.whitener)()) #we learn a change of basis
+        self.pca.fit(self.z_occam.cluster_centered.whitened(self.whitener).val) #we learn a change of basis
         self.scaling_factor = self.calculate_scaling(self.z_occam,self.std,self.is_pooled,self.use_relative_scaling)
             
             
     def reparametrize(self, vector):
         """We first whiten then perform a change of basis"""
-        transformed_vector  = np.dot(vector.whitened(self.whitener)(),self.pca.components_.T)
+        transformed_vector  = np.dot(vector.whitened(self.whitener).val,self.pca.components_.T)
         return transformed_vector
     
     
@@ -145,7 +145,7 @@ class SimpleFitter(BaseFitter):
 
     def reparametrize(self, vector):
         """Standardizes vectors"""
-        transformed_vector  = vector.whitened(self.normalizer)()
+        transformed_vector  = vector.whitened(self.normalizer).val
         return transformed_vector
 
 
