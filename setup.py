@@ -6,6 +6,6 @@ setuptools.setup(
         version="0.1",
         author="Damien de Mijolla",
         author_email="ucapdde@ucl.ac.uk",
-        description="Automatical chemical representation extraction using deep learning",
+        description="Chemical Similarity of stellar spectra using metric learning",
         packages=setuptools.find_packages()
         )

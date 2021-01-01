@@ -1,16 +1,11 @@
+"""Contains Vectors and OccamVector classes, which are manipulated by the Fitter and Evaluator classes, and serve as an extension of numpy arrays targetted for our experiments."""
+
 import numpy as np
 import matplotlib.pyplot as plt
-import torch
-
-from tagging.src.networks import *
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.decomposition import PCA
 from astropy.io import fits
 from scipy.stats import median_absolute_deviation as mad
-
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
 
 def project(data,direction):
     """obtain linear projection of data along direction"""
@@ -23,22 +18,22 @@ def get_vars(data,directions):
 
 
 class Vector():
-    def __init__(self, raw, order=1,interaction_only=True):
-        self._raw = raw
+    def __init__(self, val, order=1,interaction_only=True):
+        self._val = val
         if order>1:
             poly = PolynomialFeatures(order,interaction_only,include_bias=False)
-            self._raw = poly.fit_transform(self._raw)
+            self._val = poly.fit_transform(self._val)
 
     def __call__(self):
-        return self._raw
+        return self._val
 
     def whitened(self,whitener):
         """method that takes a whitening PCA instance and returned a whitened vector"""
-        return Vector(whitener.transform(self._raw))
+        return Vector(whitener.transform(self._val))
         
     @property
-    def raw(self):
-        return self._raw
+    def val(self):
+        return self._val
     
     def centered(self,relative_to=None):
         """
@@ -48,9 +43,9 @@ class Vector():
             Vector to use for centering. If relative_to is None then vector is centered using its own mean.
         """
         if relative_to is None:
-            return Vector(self._raw -np.mean(self._raw,axis=0))
+            return Vector(self._val -np.mean(self._val,axis=0))
         else:
-            return Vector(self._raw -np.mean(relative_to._raw,axis=0))
+            return Vector(self._val -np.mean(relative_to._val,axis=0))
     
     @property
     def normalized(self):
@@ -63,8 +58,8 @@ class LatentVector(Vector):
     def __init__(self,  dataset, autoencoder, n_data = 100, order=1,interaction_only=True):
         self.autoencoder = autoencoder
         self.dataset = dataset
-        raw = np.array([self.get_z(idx) for idx in range(n_data)]).squeeze()
-        Vector.__init__(self,raw,order,interaction_only)
+        val = np.array([self.get_z(idx) for idx in range(n_data)]).squeeze()
+        Vector.__init__(self,val,order,interaction_only)
 
     def get_z(self,idx):
         _,z = self.autoencoder(torch.tensor(self.dataset[idx][0]).to(device).unsqueeze(0))
@@ -91,12 +86,12 @@ class LatentVector(Vector):
         
     
     
-class OccamLatentVector(LatentVector,Vector):
-    def __init__(self, cluster_names, dataset=None, autoencoder=None, raw=None, n_data = 100, order=1,interaction_only=True):
-        if raw is None:     
+class OccamVector(LatentVector,Vector):
+    def __init__(self, cluster_names, dataset=None, autoencoder=None, val=None, n_data = 100, order=1,interaction_only=True):
+        if val is None:     
             LatentVector.__init__(self,dataset,autoencoder,n_data,order,interaction_only)
         else:
-            Vector.__init__(self,raw,order,interaction_only)
+            Vector.__init__(self,val,order,interaction_only)
         self.cluster_names = cluster_names
         self.registry = self.make_registry(self.cluster_names)
 
@@ -114,10 +109,10 @@ class OccamLatentVector(LatentVector,Vector):
     
     @property
     def cluster_centered(self):
-        z = np.zeros(self.raw.shape)
+        z = np.zeros(self.val.shape)
         for cluster in self.registry:
             cluster_idxs = self.registry[cluster]
-            z[cluster_idxs]=self.raw[cluster_idxs]-self.raw[cluster_idxs].mean(axis=0)
+            z[cluster_idxs]=self.val[cluster_idxs]-self.val[cluster_idxs].mean(axis=0)
         return Vector(z)
 
     def centered(self,relative_to=None):
@@ -128,28 +123,28 @@ class OccamLatentVector(LatentVector,Vector):
             Vector to use for centering. If relative_to is None then vector is centered using its own mean.
         """
         if relative_to is None:
-            return OccamLatentVector(self.cluster_names, raw = self._raw -np.mean(self._raw,axis=0))
+            return OccamVector(self.cluster_names, val = self._val -np.mean(self._val,axis=0))
         else:
-            return OccamLatentVector(self.cluster_names, raw = self._raw -np.mean(relative_to._raw,axis=0))
+            return OccamVector(self.cluster_names, val = self._val -np.mean(relative_to._val,axis=0))
     
 
     def whitened(self,whitener):
         """method that takes a whitening PCA instance and returned a whitened vector"""
-        return OccamLatentVector(self.cluster_names, raw = whitener.transform(self._raw))
+        return OccamVector(self.cluster_names, val = whitener.transform(self._val))
  
  
 
     def only(self,cluster_name):
-        """return an OccamLatentVector containing only the cluster of interest"""
+        """return an OccamVector containing only the cluster of interest"""
         idxs_kept = self.registry[cluster_name]
-        return OccamLatentVector(self.cluster_names[idxs_kept],raw=self.raw[idxs_kept])
+        return OccamVector(self.cluster_names[idxs_kept],val=self.val[idxs_kept])
    
 
     def without(self,cluster_name):
-        """return an OccamLatentVector containing all the clusters except one cluster"""
+        """return an OccamVector containing all the clusters except one cluster"""
         idxs_cluster = self.registry[cluster_name]
-        idxs_kept = np.delete(np.arange(len(self.raw)),idxs_cluster)
-        return OccamLatentVector(self.cluster_names[idxs_kept],raw=self.raw[idxs_kept])
+        idxs_kept = np.delete(np.arange(len(self.val)),idxs_cluster)
+        return OccamVector(self.cluster_names[idxs_kept],val=self.val[idxs_kept])
     
     def remove_orphans(self):
         clusters_to_exclude = []
@@ -171,7 +166,7 @@ class AstroNNVector(Vector):
         self.params = params
         ids = self.get_astroNN_ids(self.allStar)
         cut_astroNN = self.astroNN_hdul[1].data[ids]
-        self._raw = self.generate_abundances(cut_astroNN,self.params)
+        self._val = self.generate_abundances(cut_astroNN,self.params)
         
         
     def get_astroNN_ids(self,allStar):
@@ -193,7 +188,12 @@ class AstroNNVector(Vector):
                 values.append(p_h-fe_h)
 
         return np.array(values).T
- 
+    
+    def remove_nan_cols(self,):
+        idxs_deleted = list(set(np.where(np.isnan(self.val))[0]))
+        idxs_kept = np.delete(np.arange(len(self.val)),idxs_deleted)
+        return Vector(val=self.val[idxs_kept])
+    
     
     
   
@@ -217,7 +217,7 @@ class LinearTransformation():
         
         
 class NonLinearTransformation():
-    """transformation going from latent to neural network parameters"""
+    """Used for non-linear regression of y from x. Is currently depreciated as I have removed pytorch support."""
     def __init__(self,x,y):
         self.x = x
         self.y = y
@@ -245,169 +245,7 @@ class NonLinearTransformation():
         #need to return a Vector. So ncenteredeed to make this take the correct shape
         x = torch.tensor(vector.centered).to(device)
         y_unscaled_pred = self.network(x).detach().cpu().numpy()
-        y_pred = y_unscaled_pred*np.max(np.abs(self.y.centered),0)+np.mean(self.y.raw,axis=0)
+        y_pred = y_unscaled_pred*np.max(np.abs(self.y.centered),0)+np.mean(self.y.val,axis=0)
         return Vector(y_pred)                
         #return np.dot(self.val,vector.centered.T)
 
-
-class Normalizer():
-    def __init__(self):
-        """Applies rescaling rather than whitening."""
-        self.scaling_factors = None
-        
-    def fit(self,z):
-        self.scaling_factor = np.std(z,axis=0)[None,:]
-        
-    def transform(self,z):
-        return z/self.scaling_factor        
-        #return z
-        
-        
- 
-
-    
-class Fitter():
-    def __init__(self,z:Vector,z_occam:OccamLatentVector,use_relative_scaling=True, use_whitening=True,is_pooled=True,is_robust=True):
-        """
-        use_whitening: Boolean
-            When True use whitening, when False rescale each dimension independently.
-        """
-        self.z = z
-        self.z_occam = z_occam
-        if use_whitening is True:
-            self.whitener = PCA(n_components=self.z.raw.shape[1],whiten=True)
-        else:
-            self.whitener = Normalizer()
-            
-        if is_robust is True:
-            self.std = mad #calculate std using meadian absolute deviation
-        else:
-            def std_ddfof1(x,axis=0,ddof=1):
-                return np.std(x,axis=axis,ddof=ddof)
-            self.std = std_ddfof1            
-         
-        self.pca = PCA(n_components=self.z.raw.shape[1])        
-        #self.pca = FastICA(n_components=self.z.raw.shape[1],max_iter=500,whiten=False) 
-        
-        #make z look like a unit gaussian
-        self.whitener.fit(self.z.centered().raw)
-        #pick-up on directions of z_occam which are the most squashed relative to z
-        self.pca.fit(self.z_occam.cluster_centered.whitened(self.whitener)())
-        
-        #self.scaling_factor = 1 #required to set to 1 because self.transform needs scaling factor
-        if use_relative_scaling is True:
-            self.scaling_factor = self.get_scaling(z_occam,is_pooled)
-            #self.scaling_factor = np.std(self.transform(self.z_occam.cluster_centered,scaling=False),axis=0)[None,:]
-            self.scaling_factor[self.scaling_factor>=1]=0.9999 #ensure that dimensions randomly greater than 1 are zeroed out           
-            self.scaling_factor = np.array([self.relative_modifier(std) for std in list(self.scaling_factor[0])])
-        else:
-            self.scaling_factor = self.std(self.transform(self.z_occam.cluster_centered,scaling=False)(),axis=0)[None,:]
-        
-    def transform(self,vector,scaling=True):
-        """transform a vector in a way that unit vector has variance one"""
-        transformed_vector  = np.dot(vector.whitened(self.whitener)(),self.pca.components_.T)
-        if scaling is True:
-            transformed_vector = transformed_vector/self.scaling_factor
-
-        if vector.__class__ is OccamLatentVector:
-            return vector.__class__(cluster_names = vector.cluster_names, raw = transformed_vector)
-        else:
-            return vector.__class__(raw=transformed_vector)
-
-    def pooled_std(self,z:OccamLatentVector,ddof):
-        num_stars = []
-        variances = []
-        whitened_z = self.transform(self.z_occam.cluster_centered,scaling=False)()
-        for cluster in sorted(z.registry):
-            cluster_idx = z.registry[cluster]
-            #print(f"{len(cluster_idx)} stars")
-            if len(cluster_idx)>1:
-                num_stars.append(len(cluster_idx))
-                variances.append(self.std(whitened_z[cluster_idx],axis=0)**2)
-                       
-        variances = np.array(variances)
-        num_stars = np.array(num_stars)
-        return (((np.dot(num_stars-1,variances)/(np.sum(num_stars)-len(num_stars))))**0.5)[None,:]
-
-
-    def get_scaling(self,z:Vector,is_pooled=False,ddof=1):
-        if is_pooled is True:
-            return self.pooled_std(z,ddof) 
-        else:
-            return self.std(self.transform(self.z_occam.cluster_centered,scaling=False)(),axis=0,ddof=ddof)[None,:]
-
-
-
-    @staticmethod
-    def relative_modifier(sigma1,sigma2=1):
-        return np.sqrt(np.abs(sigma1**2*sigma2**2/(sigma1**2-sigma2**2)))
-    
-    
-    
-       
-class FitterAbundances(Fitter):
-    """This is a fitter that carries out the rescaling in the original basis of the representation"""
-    def __init__(self,z:Vector,z_occam:OccamLatentVector,use_relative_scaling=True, use_whitening=False,is_pooled=True,is_robust=True):
-        self.z = z
-        self.z_occam = z_occam
-        if use_whitening is True:
-            self.whitener = PCA(n_components=self.z.raw.shape[1],whiten=True)
-        else:
-            self.whitener = Normalizer()
-            
-        if is_robust is True:
-            self.std = mad #calculate std using meadian absolute deviation
-        else:
-            def std_ddfof1(x,axis=0,ddof=1):
-                return np.std(x,axis=axis,ddof=ddof)
-            self.std = std_ddfof1
-            
-        self.whitener.fit(self.z.centered().raw)
-        #self.scaling_factor = 1 #required to set to 1 because self.transform needs scaling factor
-        if use_relative_scaling is True:
-            self.scaling_factor = self.get_scaling(z_occam,is_pooled)
-            self.scaling_factor[self.scaling_factor>=1]=0.9999 #ensure that dimensions randomly greater than 1 are zeroed out           
-            self.scaling_factor = np.array([self.relative_modifier(std) for std in list(self.scaling_factor[0])])
-        else:
-
-            self.scaling_factor = self.std(self.transform(self.z_occam.cluster_centered,scaling=False)(),axis=0)[None,:]
-
-
-            
-    def transform(self,vector,scaling=True):
-        """transform a vector in a way that unit vector has variance one"""
-        transformed_vector  = vector.whitened(self.whitener)()
-        if scaling is True:
-            transformed_vector = transformed_vector/self.scaling_factor
-
-        if vector.__class__ is OccamLatentVector:
-            return vector.__class__(cluster_names = vector.cluster_names, raw = transformed_vector)
-        else:
-            return vector.__class__(raw=transformed_vector)
-    
-    
-class SimpleFitter(Fitter):                        
-    def __init__(self,z:Vector,z_occam:OccamLatentVector):
-        self.z = z
-        self.z_occam = z_occam
-        self.pca = PCA(n_components=self.z.raw.shape[1])        
-        self.pca.fit(self.z_occam.cluster_centered())
-        self.intracluster_scaling_factor = np.std(self.transform(self.z_occam.cluster_centered,scaling=False)(),axis=0)[None,:]
-        self.intercluster_scaling_factor = np.std(self.transform(self.z_occam.centered(),scaling=False)(),axis=0)[None,:]
-        scaling_factor = []
-        for i in range(len(self.intracluster_scaling_factor)):
-            scaling_factor.append(self.relative_modifier(self.intracluster_scaling_factor[i],self.intercluster_scaling_factor[i]))
-        self.scaling_factor = np.array(scaling_factor)
-        
-        
-        
-    def transform(self,vector,scaling=True):
-        """transform a vector in a way that unit vector has variance one"""
-        transformed_vector  = np.dot(vector(),self.pca.components_.T)
-        if scaling is True:
-            transformed_vector = transformed_vector/self.scaling_factor
-
-        if vector.__class__ is OccamLatentVector:
-            return vector.__class__(cluster_names = vector.cluster_names, raw = transformed_vector)
-        else:
-            return vector.__class__(raw=transformed_vector)
