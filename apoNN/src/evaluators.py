@@ -46,7 +46,7 @@ def summarize_representation(z_all, z_occam, percentage_all=0.1, percentage_occa
 
 
 
-class Evaluator(abc.ABC):
+class BaseEvaluator(abc.ABC):
     """Base class from which all evaluators are derived. This is an abstract class so is never called directly."""
     def __init__(self,z,z_occam,leave_out=True):
         pass
@@ -128,7 +128,7 @@ class Evaluator(abc.ABC):
             else:
                 fitter = fitter_class(z,z_occam)
             v_centered_occam = fitter.transform(z_occam.centered().only(cluster)).val
-            combinations = Evaluator.get_combinations(len(v_centered_occam))
+            combinations = BaseEvaluator.get_combinations(len(v_centered_occam))
             distances_cluster = []
             for combination in combinations:
                 distances_cluster.append(np.linalg.norm(v_centered_occam[combination[0]]-v_centered_occam[combination[1]]))
@@ -238,10 +238,39 @@ class Evaluator(abc.ABC):
 
 
 
+class StandardEvaluator(BaseEvaluator):
+    def __init__(self,Y,Y_occam,leave_out=True,fitter_class = fitters.Fitter):
+        """Class used for evaluating the doppelganger rate of a representation and visualizing it's performance. Directly rescales the inputed representation so is not suitable for low-dimensional data.
+        INPUTS
+        ------
+        X: apoNN.vectors.Vector
+            A vector containing the field star dataset
+        X_occam: vectors.OccamVector
+            A vector containing the occam cluster stars
+        leave_out: Boolean
+            True corresponds to excluding clusters being evaluated from training so as to avoid overfitting
+        n_components: int
+            how many PCA components to keep in the dimensionality reduction
+        """
+        self.Y = Y
+        self.Y_occam = Y_occam
+        self.registry = self.Y_occam.registry
+        self.leave_out = leave_out
+        self.fitter_class = fitter_class
+        self.distances,self.random_distances = self.get_distances(self.Y,self.Y_occam,self.leave_out,fitter_class=fitter_class)
+        self.doppelganger_rates = self.get_doppelganger_rate(self.distances,self.random_distances,self.Y_occam.registry)
 
+    def get_distances(self,Y,Y_occam,leave_out,fitter_class):
+        distances = StandardEvaluator.get_intracluster_distances(Y,Y_occam,fitter_class=fitter_class,leave_out = leave_out)
+        random_distances = StandardEvaluator.get_intercluster_distances(Y,Y_occam,fitter_class=fitter_class,n_random=1000,leave_out = leave_out)
+        return distances,random_distances
+                
 
+        
+        
+        
 
-class PcaEvaluator(Evaluator):
+class PcaEvaluator(BaseEvaluator):
     def __init__(self,X,X_occam,n_components, leave_out = True,fitter_class = fitters.Fitter):
         """Class used for evaluating the doppelganger rate of a representation and visualizing it's performance. Applies PCA to the data before applying rescaling.
         INPUTS
@@ -271,240 +300,12 @@ class PcaEvaluator(Evaluator):
         Z  = vectors.Vector(compressor.transform(X()))
         Z_occam = vectors.OccamVector(cluster_names=X_occam.cluster_names, val= compressor.transform(X_occam()))
 
-        distances = Evaluator.get_intracluster_distances(Z,Z_occam,fitter_class=fitter_class,leave_out=leave_out)
-        random_distances = Evaluator.get_intercluster_distances(Z,Z_occam,n_random=1000,fitter_class=fitter_class,leave_out=leave_out)
+        distances = PcaEvaluator.get_intracluster_distances(Z,Z_occam,fitter_class=fitter_class,leave_out=leave_out)
+        random_distances = PcaEvaluator.get_intercluster_distances(Z,Z_occam,n_random=1000,fitter_class=fitter_class,leave_out=leave_out)
         return distances,random_distances
     
     
-class AbundanceEvaluator(Evaluator):
-    def __init__(self,Y,Y_occam,leave_out=True,fitter_class = fitters.Fitter):
-        """Class used for evaluating the doppelganger rate of a representation and visualizing it's performance. Directly rescales the inputed representation so is not suitable for low-dimensional data.
-        INPUTS
-        ------
-        X: apoNN.vectors.Vector
-            A vector containing the field star dataset
-        X_occam: vectors.OccamVector
-            A vector containing the occam cluster stars
-        leave_out: Boolean
-            True corresponds to excluding clusters being evaluated from training so as to avoid overfitting
-        n_components: int
-            how many PCA components to keep in the dimensionality reduction
-        """
-        self.Y = Y
-        self.Y_occam = Y_occam
-        self.registry = self.Y_occam.registry
-        self.leave_out = leave_out
-        self.fitter_class = fitter_class
-        self.distances,self.random_distances = self.get_distances(self.Y,self.Y_occam,self.leave_out,fitter_class=fitter_class)
-        self.doppelganger_rates = self.get_doppelganger_rate(self.distances,self.random_distances,self.Y_occam.registry)
-
-    def get_distances(self,Y,Y_occam,leave_out,fitter_class):
-        distances = Evaluator.get_intracluster_distances(Y,Y_occam,fitter_class=fitter_class,leave_out = leave_out)
-        random_distances = Evaluator.get_intercluster_distances(Y,Y_occam,fitter_class=fitter_class,n_random=1000,leave_out = leave_out)
-        return distances,random_distances
-                
-        
-    
-    
-class PcaFieldEvaluator(PcaEvaluator):
-    """Same as PCAEvaluator but calculates random distances using field-field pairs rather then cluster-field pairs"""
-    def get_distances(self,X,X_occam,n_components,leave_out,fitter_class):
-        compressor = sklearn.decomposition.PCA(n_components=n_components,whiten=False)#z.val.shape[1],whiten=True)
-        compressor.fit(X())
-        Z  = vectors.Vector(compressor.transform(X()))
-        Z_occam = vectors.Occamector(cluster_names=X_occam.cluster_names, val= compressor.transform(X_occam()))
-
-        distances = Evaluator.get_intracluster_distances(Z,Z_occam,fitter_class=fitter_class,leave_out=leave_out)
-        random_distances = Evaluator.get_field_distances(Z,Z_occam,n_random=1000,fitter_class=fitter_class,leave_out=leave_out)
-        return distances,random_distances
-
 
         
-
-    
-    
-
-class AbundanceFieldEvaluator(AbundanceEvaluator):
-    """Same as AbundanceEvaluator but calculates random distances using field-field pairs rather then cluster-field pairs"""
-
-    def get_distances(self,Y,Y_occam,leave_out,fitter_class):
-        distances = Evaluator.get_intracluster_distances(Y,Y_occam,fitter_class=fitter_class,leave_out = leave_out)
-        random_distances = Evaluator.get_field_distances(Y,Y_occam,fitter_class=fitter_class,n_random=1000,leave_out = leave_out)
-        return distances,random_distances
-
-    
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-######## Experimental approach beware ################################    
-    
-    
-    
-    
-class PcaAutoScalingEvaluator(PcaEvaluator):
-    def get_distances(self,X,X_occam,n_components,leave_out=True):
-        compressor = sklearn.decomposition.PCA(n_components=n_components,whiten=False)#z.val.shape[1],whiten=True)
-        compressor.fit(X())
-        Z  = vectors.Vector(compressor.transform(X()))
-        Z_occam = vectors.OccamVector(cluster_names=X_occam.cluster_names, val= compressor.transform(X_occam()))
-
-        distances = self.get_intracluster_distances(Z,Z_occam,use_relative_scaling=True,leave_out = leave_out)
-        random_distances = self.get_intercluster_distances(Z,Z_occam,n_random=1000,use_relative_scaling=True,leave_out = leave_out)
-        return distances,random_distances
-
-    
-    @staticmethod
-    def get_intercluster_distances(z,z_occam,leave_out=True,n_random = 200,use_relative_scaling=True):
-        """Measures intercluster distances (between stars in a cluster and stars from the field) after fitting and transforming
-        INPUTS
-        ------
-        z: apoNN.vector.Vector
-            A vector containing the field star dataset
-        z_occam: vector.OccamLatentVector
-            A vector containing the occam cluster stars
-        leave_out: Boolean
-            True corresponds to excluding clusters being evaluated from training so as to avoid overfitting 
-        n_random: Number of field stars each cluster star is compared too.
-        """
-        distances = []
-        for cluster in sorted(z_occam.registry):
-            if leave_out is True:
-                fitter = fitters.Fitter(z_occam.without(cluster),z_occam.without(cluster),use_relative_scaling=use_relative_scaling)
-            else:
-                fitter = fitters.Fitter(z_occam,z_occam,use_relative_scaling=use_relative_scaling)
-            v_centered_occam = fitter.transform(z_occam.centered().only(cluster)).val
-            v = fitter.transform(fitter.z.centered(z_occam)).val
-            n_v = len(v)
-            distances_cluster = []
-            for idx in np.arange(len(v_centered_occam)):
-                for _ in np.arange(n_random):
-                    random_idx = random.randint(0,n_v-1)
-                    distances_cluster.append(np.linalg.norm(v_centered_occam[idx]-v[random_idx]))
-
-            distances.append(distances_cluster)
-        return distances
-    
-    @staticmethod
-    def get_intracluster_distances(z,z_occam,leave_out=True,use_relative_scaling=True):
-        """Measures intracluster distances (between stars in the same cluster) after fitting and transforming.
-        INPUTS
-        ------
-        z: apoNN.vector.Vector
-            A vector containing the field star dataset
-        z_occam: vector.OccamLatentVector
-            A vector containing the occam cluster stars
-        leave_out: Boolean
-            True corresponds to excluding clusters being evaluated from training so as to avoid overfitting 
-        """
-        distances = []
-        for cluster in sorted(z_occam.registry):
-            if leave_out is True:
-                fitter = fitters.Fitter(z_occam.without(cluster),z_occam.without(cluster),use_relative_scaling)
-            else:
-                fitter = fitters.Fitter(z_occam,z_occam,use_relative_scaling)
-            v_centered_occam = fitter.transform(z_occam.centered().only(cluster)).val
-            combinations = Evaluator.get_combinations(len(v_centered_occam))
-            distances_cluster = []
-            for combination in combinations:
-                distances_cluster.append(np.linalg.norm(v_centered_occam[combination[0]]-v_centered_occam[combination[1]]))
-
-            distances.append(distances_cluster)
-        return distances
-
-    
-    
-class AbundanceAutoScalingEvaluator(AbundanceEvaluator):
-    def __init__(self,Y,Y_occam,leave_out=True):
-        """Method evaluating doppelganger rate
-        INPUTS
-        ------
-        X: apoNN.vector.Vector
-            A vector containing the field star dataset
-        X_occam: vector.OccamLatentVector
-            A vector containing the occam cluster stars
-        leave_out: Boolean
-            True corresponds to excluding clusters being evaluated from training so as to avoid overfitting
-        n_components: int
-            how many PCA components to keep in the dimensionality reduction
-        """
-        self.Y = Y
-        self.Y_occam = Y_occam
-        self.registry = self.Y_occam.registry
-        self.leave_out = leave_out
-        self.distances,self.random_distances = self.get_distances(self.Y,self.Y_occam,self.leave_out)
-        self.doppelganger_rates = self.get_doppelganger_rate(self.distances,self.random_distances,self.Y_occam.registry)
-
-    def get_distances(self,Y,Y_occam,leave_out=True):
-        distances = self.get_intracluster_distances(Y,Y_occam,use_relative_scaling=True,leave_out = leave_out)
-        random_distances = self.get_intercluster_distances(Y,Y_occam,n_random=1000,use_relative_scaling=True,leave_out = leave_out)
-        return distances,random_distances  
-    
-    
-    @staticmethod
-    def get_intercluster_distances(z,z_occam,leave_out=True,n_random = 200,use_relative_scaling=True):
-        """Measures intercluster distances (between stars in a cluster and stars from the field) after fitting and transforming
-        INPUTS
-        ------
-        z: apoNN.vector.Vector
-            A vector containing the field star dataset
-        z_occam: vector.OccamLatentVector
-            A vector containing the occam cluster stars
-        leave_out: Boolean
-            True corresponds to excluding clusters being evaluated from training so as to avoid overfitting 
-        n_random: Number of field stars each cluster star is compared too.
-        """
-        distances = []
-        for cluster in sorted(z_occam.registry):
-            if leave_out is True:
-                fitter = fitters.Fitter(z_occam.without(cluster),z_occam.without(cluster),use_relative_scaling=use_relative_scaling)
-            else:
-                fitter = fitters.Fitter(z_occam,z_occam,use_relative_scaling=use_relative_scaling)
-            v_centered_occam = fitter.transform(z_occam.centered().only(cluster)).val
-            v = fitter.transform(fitter.z.centered(z_occam)).val
-            n_v = len(v)
-            distances_cluster = []
-            for idx in np.arange(len(v_centered_occam)):
-                for _ in np.arange(n_random):
-                    random_idx = random.randint(0,n_v-1)
-                    distances_cluster.append(np.linalg.norm(v_centered_occam[idx]-v[random_idx]))
-
-            distances.append(distances_cluster)
-        return distances
-    
-    @staticmethod
-    def get_intracluster_distances(z,z_occam,leave_out=True,use_relative_scaling=True):
-        """Measures intracluster distances (between stars in the same cluster) after fitting and transforming.
-        INPUTS
-        ------
-        z: apoNN.vector.Vector
-            A vector containing the field star dataset
-        z_occam: vector.OccamLatentVector
-            A vector containing the occam cluster stars
-        leave_out: Boolean
-            True corresponds to excluding clusters being evaluated from training so as to avoid overfitting 
-        """
-        distances = []
-        for cluster in sorted(z_occam.registry):
-            if leave_out is True:
-                fitter = fitters.Fitter(z_occam.without(cluster),z_occam.without(cluster),use_relative_scaling)
-            else:
-                fitter = fitters.Fitter(z_occam,z_occam,use_relative_scaling)
-            v_centered_occam = fitter.transform(z_occam.centered().only(cluster)).val
-            combinations = Evaluator.get_combinations(len(v_centered_occam))
-            distances_cluster = []
-            for combination in combinations:
-                distances_cluster.append(np.linalg.norm(v_centered_occam[combination[0]]-v_centered_occam[combination[1]]))
-
-            distances.append(distances_cluster)
-        return distances
+     
 
