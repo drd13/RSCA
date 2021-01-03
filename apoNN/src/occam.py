@@ -1,3 +1,6 @@
+"""Tools for cross-matching the occam catalogue with the APOGEE Allstar file. Returns a filtered allstar file containing only those stars which are part of occam and dataset cuts"""
+
+
 from astropy.io import fits
 import numpy as np
 import apogee.tools.read as apread

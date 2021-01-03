@@ -1,3 +1,5 @@
+"""Contains Evaluator classes designed to calculate doppelganger rates on held-out datasets and other tools for visualizing performance"""
+
 import abc
 import matplotlib.pyplot as plt
 import apoNN.src.vectors as vectors

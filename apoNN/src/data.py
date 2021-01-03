@@ -1,3 +1,5 @@
+"""Contains files for handling allStar APOGEE files and converting them into numpy arrays of observed spectra"""
+
 import apogee.tools.read as apread
 import apogee.tools.path as apogee_path
 from apogee.tools import bitmask

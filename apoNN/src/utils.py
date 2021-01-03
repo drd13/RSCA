@@ -1,3 +1,5 @@
+"""Some random utils functions. Most are not actually useed in the paper"""
+
 import torch
 import torchvision
 import pickle
