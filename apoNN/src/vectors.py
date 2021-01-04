@@ -6,6 +6,7 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.decomposition import PCA
 from astropy.io import fits
 from scipy.stats import median_absolute_deviation as mad
+import warnings
 
 def project(data,direction):
     """obtain linear projection of data along direction"""
@@ -23,6 +24,12 @@ class Vector():
         if order>1:
             poly = PolynomialFeatures(order,interaction_only,include_bias=False)
             self._val = poly.fit_transform(self._val)
+            
+            
+            
+    def __getitem__(self,i):
+        return Vector(self.val[i])
+        
 
     def whitened(self,whitener):
         """method that takes a whitening PCA instance and returned a whitened vector"""
@@ -92,6 +99,10 @@ class OccamVector(LatentVector,Vector):
         self.cluster_names = cluster_names
         self.registry = self.make_registry(self.cluster_names)
 
+        
+    def __getitem__(self,i):
+        warnings.warn("slicing OccamVectors only modifies the val and not the cluster_names/registry. Proceed with caution.")
+        return OccamVector(self.cluster_names, val = self.val[i])        
 
     @staticmethod
     def make_registry(cluster_names):
@@ -128,8 +139,6 @@ class OccamVector(LatentVector,Vector):
     def whitened(self,whitener):
         """method that takes a whitening PCA instance and returned a whitened vector"""
         return OccamVector(self.cluster_names, val = whitener.transform(self._val))
- 
- 
 
     def only(self,cluster_name):
         """return an OccamVector containing only the cluster of interest"""
