@@ -19,7 +19,9 @@ class Dataset():
     def __init__(self,allStar=None,filtered_bits=filtered_bits,filling_dataset=None,threshold=0.05):
         """
         allStar: 
-            an allStar shape array containg those stars chosen for the dataset
+            an allStar FITS file containg those APOGEE observations which should be included in the dataset.
+        threshold: float
+            A cut-off error above which pixels should be considered masked
         """
         self.threshold = threshold
         self.bad_pixels_spec = []
@@ -41,21 +43,26 @@ class Dataset():
         return filtered_mask
     
     def idx_to_prop(self,idx):
+        """Get the Apogee information associated to an index entry in the Allstar file"""
         return self.allStar[idx]["APOGEE_ID"],self.allStar[idx]["FIELD"], self.allStar[idx]["TELESCOPE"]
         
     def spectra_from_idx(self,idx):
+        """Get the ASPCAP continium normalized spectra corresponding to an allStar entry from it's index in allStar"""
         apogee_id,loc,telescope = self.idx_to_prop(idx)
         return apread.aspcapStar(loc_id=str(loc),apogee_id=apogee_id,telescope=telescope,ext=1)[0]
     
     def mask_from_idx(self,idx):
+        """Get the APSTAR mask associated to an AllStar entry from its index in allStar"""
         apogee_id,loc,telescope = self.idx_to_prop(idx)
         return apread.apStar(loc_id=str(loc),apogee_id=apogee_id,telescope=telescope,ext=3)[0][0]
     
     def errs_from_idx(self,idx):
+        """Get the ASPCAP errs associated to an ASPCAP continuum normalized spectra from its index in allStar"""
         apogee_id,loc,telescope = self.idx_to_prop(idx)
         return apread.aspcapStar(loc_id=str(loc),apogee_id=apogee_id,telescope=telescope,ext=2)[0]
         
     def spectra_from_allStar(self,allStar):
+        """Converts an AllStar file into an array containing the ASPCAP continuum-normalized spectra. Any spectra incapable of being retrieved is added to a bad_pixels_spec list"""
         spectras = []
         for idx in range(len(allStar)):
             try:
@@ -67,6 +74,8 @@ class Dataset():
 
     
     def errs_from_allStar(self,allStar):
+        """Converts an AllStar file into an array containing the ASPCAP continuum-normalized errors associated to spectra. Any spectra incapable of being retrieved is added to a bad_pixels_spec list"""
+
         errs = []
         for idx in range(len(allStar)):
             try:
@@ -76,6 +85,8 @@ class Dataset():
         return np.array(errs)
  
     def mask_from_allStar(self,allStar):
+        """Converts an AllStar file into an array containing the APSTAR masks continuum-normalized spectra."""
+
         mask  = [self.mask_from_idx(idx).astype(np.float32) for idx in range(len(allStar))]
         return mask
     
@@ -90,6 +101,14 @@ class Dataset():
 
 
 def interpolate(spectra, filling_dataset):
+    """
+    Takes a spectra and a dataset and fills the missing values in the spectra with those from the most similar spectra in the dataset
+    ---------------------
+    spectra: numpy.array
+            a spectra with missing values set to zero which we wish to fill
+       filling_dataset: numpy.array
+            dataset of spectra we would like to use for interpolation 
+    """
     print("new spectrum interpolated...")
     well_behaved_bins = np.sum(filling_dataset,axis=0)!=0 #we are happy to leave at zero these bins
     missing_values = spectra.mask
