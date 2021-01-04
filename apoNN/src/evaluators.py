@@ -137,10 +137,42 @@ class BaseEvaluator(abc.ABC):
 
             distances.append(distances_cluster)
         return distances
+    
+    
+    @staticmethod
+    def get_comprehensive_intercluster_distances(z,z_occam,leave_out=True,fitter_class=fitters.Fitter,n_random=None):
+        """Measures intercluster distances (between stars in a cluster and stars from the field) after fitting and transforming. Uses all combinations of stars to get distances
+        INPUTS
+        ------
+        z: apoNN.vector.Vector
+            A vector containing the field star dataset
+        z_occam: vector.OccamVector
+            A vector containing the occam cluster stars
+        leave_out: Boolean
+            True corresponds to excluding clusters being evaluated from training so as to avoid overfitting 
+        n_random: int
+            Number of field stars each cluster star is compared too.
+        fitter_class: Fitter
+            Fitter class that is used for rescaling.
+        """
+        distances = []
+        for cluster in sorted(z_occam.registry):
+            if leave_out is True:
+                fitter = fitter_class(z,z_occam.without(cluster))
+            else:
+                fitter = fitter_class(z,z_occam)
+            v_centered_occam = fitter.transform(z_occam.centered().only(cluster)).val
+            v = fitter.transform(fitter.z.centered(z_occam)).val
+            n_v = len(v)
+            v_centered_occam = np.repeat(v_centered_occam[:,  np.newaxis, :], n_v, axis=1)
+            v = np.repeat(v[np.newaxis,:,:],len(v_centered_occam),axis=0)
+            distances_cluster = np.linalg.norm(v_centered_occam-v,axis=2)
+            distances.append(distances_cluster.flatten())
+        return distances    
 
     
     @staticmethod
-    def get_intercluster_distances(z,z_occam,leave_out=True,n_random = 200,fitter_class=fitters.Fitter):
+    def get_stochastic_intercluster_distances(z,z_occam,leave_out=True,n_random = 200,fitter_class=fitters.Fitter):
         """Measures intercluster distances (between stars in a cluster and stars from the field) after fitting and transforming
         INPUTS
         ------
@@ -264,17 +296,19 @@ class StandardEvaluator(BaseEvaluator):
 
     def get_distances(self,Y,Y_occam,leave_out,fitter_class):
         distances = StandardEvaluator.get_intracluster_distances(Y,Y_occam,fitter_class=fitter_class,leave_out = leave_out)
-        random_distances = StandardEvaluator.get_intercluster_distances(Y,Y_occam,fitter_class=fitter_class,n_random=1000,leave_out = leave_out)
+        random_distances = StandardEvaluator.get_comprehensive_intercluster_distances(Y,Y_occam,fitter_class=fitter_class,n_random=1000,leave_out = leave_out)
         return distances,random_distances
-                
+    
+    
+    
+    
 
-        
         
         
 
 class PcaEvaluator(BaseEvaluator):
     def __init__(self,X,X_occam,n_components, leave_out = True,fitter_class = fitters.Fitter):
-        """Class used for evaluating the doppelganger rate of a representation and visualizing it's performance. Applies PCA to the data before applying rescaling.
+        """Class used for evaluating the doppelganger rate of a representation and visualizing it's performance. Applies PCA to the data before applying rescaling. This evaluator assumes a dataste with missing values infilled. Currently, experiments don't use this class but do the compression separately from the evaluator and use the PCA with missing values.
         INPUTS
         ------
         X: apoNN.vectors.Vector
