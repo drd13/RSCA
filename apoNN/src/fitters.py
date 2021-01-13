@@ -84,7 +84,7 @@ class BaseFitter(abc.ABC):
         if is_pooled is True:
             return self.pooled_std(z) 
         else:
-            return self.std(self.transform(self.z_occam.cluster_centered,scaling=False)(),axis=0)[None,:]
+            return self.std(self.transform(self.z_occam.cluster_centered,scaling=False).val,axis=0)[None,:]
         
     @staticmethod
     def relative_modifier(sigma1,sigma2=1):
@@ -98,7 +98,7 @@ class BaseFitter(abc.ABC):
             scaling_factor[scaling_factor>=1]=0.9999999 #put a very large value to ensure that dimensions randomly greater than 1 are zeroed out           
             scaling_factor = np.array([self.relative_modifier(std) for std in list(scaling_factor[0])])
         else:
-            scaling_factor = self.std(self.transform(self.z_occam.cluster_centered,scaling=False)(),axis=0)[None,:]
+            scaling_factor = self.get_scaling(z_occam,is_pooled)
          
         return scaling_factor
     
