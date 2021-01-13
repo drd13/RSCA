@@ -141,8 +141,18 @@ class OccamVector(LatentVector,Vector):
         return OccamVector(self.cluster_names, val = whitener.transform(self._val))
 
     def only(self,cluster_name):
-        """return an OccamVector containing only the cluster of interest"""
-        idxs_kept = self.registry[cluster_name]
+        """Return an OccamVector containing only the clusters of interest.
+        
+        INPUTS
+        ------
+        cluster_name: string or list
+            if string returns an object containing only that cluster. If list return an object containing spectra associatd to all clusters in list."""
+        if isinstance(cluster_name,list):
+            idxs_kept = []
+            for cluster in cluster_name:
+                idxs_kept += list( self.registry[cluster])
+        else: 
+            idxs_kept = self.registry[cluster_name]
         return OccamVector(self.cluster_names[idxs_kept],val=self.val[idxs_kept])
    
 
