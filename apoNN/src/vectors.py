@@ -214,6 +214,7 @@ class AstroNNVector(Vector):
     
   
     
+    
 class LinearTransformation():
     def __init__(self,x,y):
         self.x = x
@@ -221,12 +222,12 @@ class LinearTransformation():
     
     @property
     def val(self):
-        return np.dot(self.y.centered().T,np.linalg.pinv(self.x.centered().T))
+        return np.dot(self.y.centered().val.T,np.linalg.pinv(self.x.centered().val.T))
     
     def predict(self,vector:Vector):
         #need to return a Vector. So ncenteredeed to make this take the correct shape
-        uncentered = np.dot(self.val,vector.centered().T).T
-        centered = uncentered+np.mean(self.y(),axis=0)
+        uncentered = np.dot(self.val,vector.centered().val.T).T
+        centered = uncentered+np.mean(self.y.val,axis=0)
         return Vector(centered)                
         #return np.dot(self.val,vector.centered.T)
         
