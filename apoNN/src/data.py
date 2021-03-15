@@ -3,7 +3,7 @@
 import apogee.tools.read as apread
 import apogee.tools.path as apogee_path
 from apogee.tools import bitmask
-
+from apogee.spec import continuum
 import numpy as np
 
 filtered_bits = [bitmask.apogee_pixmask_int('BADPIX'),
@@ -98,8 +98,62 @@ class Dataset():
         masked_spectra = np.ma.masked_array(masked_spectra, mask=mask)
         return masked_spectra
     
+    
+class ApVisitDataset(Dataset):
+    """Dataset containing continuum-normalized visits. This code is a bit hacky so may fail on some edgecases"""
+    def __init__(self,allStar=None,threshold=0.05):
+        self.allStar = allStar
+        self.threshold = threshold
+        self.bad_pixels_spec = []
+        self.bad_pixels_err = []
+        self.spectra = self.spectra_from_allStar(allStar)
+        self.errs = self.errs_from_allStar(allStar)
+        #self.masked_spectra = self.make_masked_spectra(self.spectra,self.errs,self.threshold)
+        
+    def visit_from_idx(self,idx,visit_idx):
+        spec,spec_err = self.get_apstar_visit(idx,visit_idx) #if nvisit=1 --> spec dim is 8575 else spec dim is nvist+2
+        cont_spec = self.continium_normalize_visit(spec,spec_err)
+        return cont_spec
+    
+    def continium_normalize_visit(self,spec,spec_err):
+        spec= np.reshape(spec,(1,len(spec)))
+        spec_err= np.reshape(spec_err,(1,len(spec_err)))
+        cont= continuum.fit(spec,spec_err,type='aspcap',niter=0)
+        return spec[0]/cont[0]
+    
+    def get_apstar_visit(self,idx,visit_idx):
+        apogee_id,loc,telescope = self.idx_to_prop(idx)
+        if visit_idx ==0: #visit_idx==0 spectra have different shape needing accomodating
+            spec = apread.apStar(loc_id=str(loc),apogee_id=apogee_id,telescope=telescope,ext=1)[0]
+            spec_err = apread.apStar(loc_id=str(loc),apogee_id=apogee_id,telescope=telescope,ext=2)[0]
+        else:
+            spec = apread.apStar(loc_id=str(loc),apogee_id=apogee_id,telescope=telescope,ext=1)[0][visit_idx]
+            spec_err = apread.apStar(loc_id=str(loc),apogee_id=apogee_id,telescope=telescope,ext=2)[0][visit_idx]
+        return spec,spec_err
+    
+        
+    def spectra_from_allStar(self,allStar):
+        spectras = []
+        for idx in range(len(allStar)):
+            n_visits = allStar["NVISITS"][idx]
+            if n_visits>1:
+                
+                visits = []
+                for visit_idx in range(2,n_visits+2):
+                    visits.append(self.visit_from_idx(idx,visit_idx).astype(np.float32))
+                spectras.append(visits)
 
+            else:
+                visits = []
+                visits.append(self.visit_from_idx(idx,0).astype(np.float32))
+                spectras.append(visits)
 
+        return np.array(spectras)       
+         
+
+    
+
+    
 def interpolate(spectra, filling_dataset):
     """
     Takes a spectra and a dataset and fills the missing values in the spectra with those from the most similar spectra in the dataset
