@@ -109,6 +109,25 @@ class ApVisitDataset(Dataset):
         self.spectra = self.spectra_from_allStar(allStar)
         self.errs = self.errs_from_allStar(allStar)
         #self.masked_spectra = self.make_masked_spectra(self.spectra,self.errs,self.threshold)
+
+
+    def make_masked_spectra(self,spectra,errs,threshold=0.05):
+        """set to zero all pixels for which the error is predicted to be greater than some threshold."""
+        mask = errs>threshold
+        masked_spectra = []
+        for i,spec in enumerate(self.spectra):
+            ma_spec_data = np.copy(np.array(spec))
+            ma_spec_data = np.nan_to_num(ma_spec_data,posinf=0,neginf=0)
+            ma = mask[None,i].repeat(ma_spec_data.shape[0],axis=0)
+            ma_spec_data[ma] = 0
+            ma_spec = np.ma.masked_array(ma_spec_data, mask=ma)
+            masked_spectra.append(ma_spec)
+        return masked_spectra
+ 
+
+    def update_masked_spectra(self,errs,threshold=0.05):
+        """Feed an error array to use in masked spectra"""
+        self.masked_spectra = self.make_masked_spectra(self.spectra,errs,threshold)
         
     def visit_from_idx(self,idx,visit_idx):
         spec,spec_err = self.get_apstar_visit(idx,visit_idx) #if nvisit=1 --> spec dim is 8575 else spec dim is nvist+2
