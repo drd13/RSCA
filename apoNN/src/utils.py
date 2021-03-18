@@ -66,3 +66,19 @@ def get_mask_elem(elem,trimmed=0):
         line_idx = np.arange(start[i],end[i])
         spec_mask[line_idx] = 1 
     return spec_mask    
+
+
+def allStar_to_calendar(allStar):
+    """Converts an allstar fits file into an array containing the mjd (observation dates of stars)"""
+    mjds = [[visit.split("-")[2] for visit in star.split(",")] for star in allStar["VISITS"]]
+    return mjds
+    
+
+
+def get_overlap(mjds,idx1,idx2):
+    """given two stars defined by their idx in mjds, returns what percentage of their visits were observed together.""" 
+    mjd1 = mjds[idx1]
+    mjd2 = mjds[idx2]
+    num_overlap = len(set(mjd1).intersection(mjd2))
+    return 0.5*(num_overlap/len(mjd1)+num_overlap/len(mjd2))
+
