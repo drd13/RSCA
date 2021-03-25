@@ -1,12 +1,13 @@
 """Some random utils functions. Most are not actually useed in the paper"""
 
-import torch
-import torchvision
 import pickle
 import numpy as np
 from pathlib import Path
 import apogee.tools.path as apath
 import apogee.spec.window as apwindow
+
+import apoNN.src.evaluators as evaluators
+
 
 #def get_interstellar_bands(interstellar_locs = [[750,900],[2400,2450],[2600,2750],[4300,4600]]):
 def get_interstellar_bands(interstellar_locs = [[720,910],[2370,2470],[2600,2750],[4300,4600]]):
@@ -81,4 +82,79 @@ def get_overlap(mjds,idx1,idx2):
     mjd2 = mjds[idx2]
     num_overlap = len(set(mjd1).intersection(mjd2))
     return 0.5*(num_overlap/len(mjd1)+num_overlap/len(mjd2))
+
+
+
+def make_intracluster_similarity_trends(V_occam,get_y):
+    """Measures both the similarities for all stellar sibling pairs in a dataset and a y-parameter.
+    Parameters
+    ----------
+    V_occam: Vectors.OccamVector
+        OccamVector containing the final transformed representation on which metric learning is applied.
+    get_y: function
+        Function which takes idx1,idx2 - the indexes of a pair of stars -  and returns the y quantity of interest
+    Outputs
+    -------
+    all_similarities: np.array
+        Contains the similarities for all stars in the dataset
+    all_y: np.array
+        Contains the associated y values for every pair in all_similarities
+    """
+    all_similarities = []
+    all_ys = []
+    for cluster in V_occam.registry:
+        clust_size = len(V_occam.registry[cluster])
+        if clust_size>1:
+            combinations = evaluators.BaseEvaluator.get_combinations(clust_size)
+            pairings = np.array(V_occam.registry[cluster][np.array(combinations)])
+            v1 = V_occam.val[pairings[:,0]]
+            v2 = V_occam.val[pairings[:,1]]
+            similarities = np.linalg.norm(v1-v2,axis=1)
+            ys = np.array([get_y(pair[0],pair[1]) for pair in pairings])
+            all_similarities.append(similarities)
+            all_ys.append(ys)
+            
+    return  np.concatenate(all_similarities), np.concatenate(all_ys)
+
+
+
+def set_size(width, fraction=1, subplots=(1, 1)):
+    """Set figure dimensions to avoid scaling in LaTeX.
+
+    Parameters
+    ----------
+    width: float or string
+            Document width in points, or string of predined document type
+    fraction: float, optional
+            Fraction of the width which you wish the figure to occupy
+    subplots: array-like, optional
+            The number of rows and columns of subplots.
+    Returns
+    -------
+    fig_dim: tuple
+            Dimensions of figure in inches
+    """
+    if width == 'thesis':
+        width_pt = 426.79135
+    elif width == 'beamer':
+        width_pt = 307.28987
+    else:
+        width_pt = width
+
+    # Width of figure (in pts)
+    fig_width_pt = width_pt * fraction
+    # Convert from pt to inches
+    inches_per_pt = 1 / 72.27
+
+    # Golden ratio to set aesthetic figure height
+    # https://disq.us/p/2940ij3
+    golden_ratio = (5**.5 - 1) / 2
+
+    # Figure width in inches
+    fig_width_in = fig_width_pt * inches_per_pt
+    # Figure height in inches
+    fig_height_in = fig_width_in * golden_ratio * (subplots[0] / subplots[1])
+
+    return (fig_width_in, fig_height_in)
+
 

@@ -161,7 +161,26 @@ class OccamVector(LatentVector,Vector):
         idxs_cluster = self.registry[cluster_name]
         idxs_kept = np.delete(np.arange(len(self.val)),idxs_cluster)
         return OccamVector(self.cluster_names[idxs_kept],val=self.val[idxs_kept])
+
     
+    def get_orphan_idxs(self,cluster_names):
+        """return index of elements within list only appearing once"""
+        #repeated code. I should probably merge the two functions.
+        clusters_to_exclude = []
+        registry = self.make_registry(cluster_names)
+        for cluster_name in registry:
+            if len(registry[cluster_name])==1:
+                clusters_to_exclude.append(cluster_name)
+        repeated_idxs = []
+        for cluster in clusters_to_exclude:
+            repeated_idxs.extend(registry[cluster])
+        return repeated_idxs
+
+
+    def get_nonorphan_idxs(self,cluster_names):
+        """return indexes of all nonorphan stars"""
+        return np.delete(np.arange(len(cluster_names)),self.get_orphan_idxs(cluster_names))    
+
     def remove_orphans(self):
         clusters_to_exclude = []
         for cluster_name in self.registry:
