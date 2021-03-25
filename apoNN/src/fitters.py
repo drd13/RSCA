@@ -102,9 +102,6 @@ class BaseFitter(abc.ABC):
          
         return scaling_factor
     
-
-
-    
 class StandardFitter(BaseFitter):
     def __init__(self,z:vectors.Vector,z_occam:vectors.OccamVector,use_relative_scaling=True, use_whitening=True,is_pooled=True,is_robust=True):
         """The StandardFitter, as used in the paper. Scales the representation through a 3 step procedure consisting of 1) whitening 2) change-of-basis 3) rescaling.
@@ -170,13 +167,12 @@ class SimpleFitter(BaseFitter):
             self.std = std_ddfof1
             
         self.normalizer.fit(self.z.centered().val)
-        #self.scaling_factor = 1 #required to set to 1 because self.transform needs scaling factor
         if use_relative_scaling is True:
             self.scaling_factor = self.get_scaling(z_occam,is_pooled)
             self.scaling_factor[self.scaling_factor>=1]=0.9999 #ensure that dimensions randomly greater than 1 are zeroed out           
             self.scaling_factor = np.array([self.relative_modifier(std) for std in list(self.scaling_factor[0])])
-        else:
 
+        else:
             self.scaling_factor = self.std(self.transform(self.z_occam.cluster_centered,scaling=False)(),axis=0)[None,:]
 
     def reparametrize(self, vector):
@@ -195,105 +191,18 @@ class Normalizer():
         return z/self.scaling_factor        
         
 
-class Fitter():
-    def __init__(self,z:vectors.Vector,z_occam:vectors.OccamVector,use_relative_scaling=True, use_whitening=True,is_pooled=True,is_robust=True):
-        """
-        use_whitening: Boolean
-            When True use whitening, when False rescale each dimension independently.
-        """
-        self.z = z
-        self.z_occam = z_occam
-        if use_whitening is True:
-            self.whitener = PCA(n_components=self.z.val.shape[1],whiten=True)
-        else:
-            self.whitener = Normalizer()
-            
-        if is_robust is True:
-            self.std = mad #calculate std using meadian absolute deviation
-        else:
-            def std_ddfof1(x,axis=0,ddof=1):
-                return np.std(x,axis=axis,ddof=ddof)
-            self.std = std_ddfof1            
-         
-        self.pca = PCA(n_components=self.z.val.shape[1])        
-        #self.pca = FastICA(n_components=self.z.val.shape[1],max_iter=500,whiten=False) 
-        
-        #make z look like a unit gaussian
-        self.whitener.fit(self.z.centered().val)
-        #pick-up on directions of z_occam which are the most squashed relative to z
-        self.pca.fit(self.z_occam.cluster_centered.whitened(self.whitener).val)
-        
-        #self.scaling_factor = 1 #required to set to 1 because self.transform needs scaling factor
-        if use_relative_scaling is True:
-            self.scaling_factor = self.get_scaling(z_occam,is_pooled)
-            #self.scaling_factor = np.std(self.transform(self.z_occam.cluster_centered,scaling=False),axis=0)[None,:]
-            self.scaling_factor[self.scaling_factor>=1]=0.9999 #ensure that dimensions randomly greater than 1 are zeroed out           
-            self.scaling_factor = np.array([self.relative_modifier(std) for std in list(self.scaling_factor[0])])
-        else:
-            self.scaling_factor = self.std(self.transform(self.z_occam.cluster_centered,scaling=False)(),axis=0)[None,:]
-        
-    def transform(self,vector,scaling=True):
-        """transform a vector in a way that unit vector has variance one"""
-        transformed_vector  = np.dot(vector.whitened(self.whitener)(),self.pca.components_.T)
-        if scaling is True:
-            transformed_vector = transformed_vector/self.scaling_factor
-
-        if vector.__class__ is vectors.OccamVector:
-            return vector.__class__(cluster_names = vector.cluster_names, val = transformed_vector)
-        else:
-            return vector.__class__(val=transformed_vector)
-
-    def pooled_std(self,z:vectors.OccamVector,ddof):
-        num_stars = []
-        variances = []
-        whitened_z = self.transform(self.z_occam.cluster_centered,scaling=False)()
-        for cluster in sorted(z.registry):
-            cluster_idx = z.registry[cluster]
-            #print(f"{len(cluster_idx)} stars")
-            if len(cluster_idx)>1:
-                num_stars.append(len(cluster_idx))
-                variances.append(self.std(whitened_z[cluster_idx],axis=0)**2)
-                       
-        variances = np.array(variances)
-        num_stars = np.array(num_stars)
-        return (((np.dot(num_stars-1,variances)/(np.sum(num_stars)-len(num_stars))))**0.5)[None,:]
-
-
-    def get_scaling(self,z:vectors.Vector,is_pooled=False,ddof=1):
-        if is_pooled is True:
-            return self.pooled_std(z,ddof) 
-        else:
-            return self.std(self.transform(self.z_occam.cluster_centered,scaling=False)(),axis=0,ddof=ddof)[None,:]
-
-
-
-    @staticmethod
-    def relative_modifier(sigma1,sigma2=1):
-        return np.sqrt(np.abs(sigma1**2*sigma2**2/(sigma1**2-sigma2**2)))
-    
-
-class BasisFitter(Fitter):                        
+class EmptyFitter():
     def __init__(self,z:vectors.Vector,z_occam:vectors.OccamVector):
+        """This fitter does nothing... But that's sometimes a good thing when you want to benchmark things"""
         self.z = z
-        self.z_occam = z_occam
-        self.pca = PCA(n_components=self.z.val.shape[1])        
-        self.pca.fit(self.z_occam.cluster_centered())
-        self.intracluster_scaling_factor = np.std(self.transform(self.z_occam.cluster_centered,scaling=False)(),axis=0)[None,:]
-        self.intercluster_scaling_factor = np.std(self.transform(self.z_occam.centered(),scaling=False)(),axis=0)[None,:]
-        scaling_factor = []
-        for i in range(len(self.intracluster_scaling_factor)):
-            scaling_factor.append(self.relative_modifier(self.intracluster_scaling_factor[i],self.intercluster_scaling_factor[i]))
-        self.scaling_factor = np.array(scaling_factor)
-        
-        
-        
-    def transform(self,vector,scaling=True):
-        """transform a vector in a way that unit vector has variance one"""
-        transformed_vector  = np.dot(vector(),self.pca.components_.T)
-        if scaling is True:
-            transformed_vector = transformed_vector/self.scaling_factor
+        self.z_occam =z_occam
 
+    def transform(self,vector):
+        """transform a vector in a way that unit vector has variance one"""
         if vector.__class__ is vectors.OccamVector:
-            return vector.__class__(cluster_names = vector.cluster_names, val = transformed_vector)
+            return vector.__class__(cluster_names = vector.cluster_names, val = vector.val)
         else:
-            return vector.__class__(val=transformed_vector)
+            return vector.__class__(val=vector.val)
+
+
+
