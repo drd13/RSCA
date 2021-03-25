@@ -89,15 +89,32 @@ class Dataset():
 
         mask  = [self.mask_from_idx(idx).astype(np.float32) for idx in range(len(allStar))]
         return mask
+
+    def add_mask(self,new_mask):
+        self.masked_spectra.mask = np.logical_or(self.masked_spectra.mask,new_mask)
     
     def make_masked_spectra(self,spectra,errs,threshold=0.05):
         """set to zero all pixels for which the error is predicted to be greater than some threshold."""
         mask = errs>threshold
+        empty_bins = ~(spectra.any(axis=0)[None,:].repeat(len(spectra),axis=0))
+        mask = np.logical_or(empty_bins ,mask)
         masked_spectra = np.copy(spectra)
         masked_spectra[mask]= 0
         masked_spectra = np.ma.masked_array(masked_spectra, mask=mask)
         return masked_spectra
-    
+
+
+class FitDataset(Dataset):
+    def __init__(self,allStar):
+        self.allStar = allStar
+        self.spectra = self.spectra_from_allStar(allStar)
+
+    def spectra_from_idx(self,idx):
+        """Get the ASPCAP continium normalized spectra corresponding to an allStar entry from it's index in allStar"""
+        apogee_id,loc,telescope = self.idx_to_prop(idx)
+        return apread.aspcapStar(loc_id=str(loc),apogee_id=apogee_id,telescope=telescope,ext=3)[0]
+ 
+
     
 class ApVisitDataset(Dataset):
     """Dataset containing continuum-normalized visits. This code is a bit hacky so may fail on some edgecases"""
