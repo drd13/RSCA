@@ -5,8 +5,11 @@ import numpy as np
 from pathlib import Path
 import apogee.tools.path as apath
 import apogee.spec.window as apwindow
-
 import apoNN.src.evaluators as evaluators
+
+
+text_width = 513.11743
+column_width =242.26653
 
 
 #def get_interstellar_bands(interstellar_locs = [[750,900],[2400,2450],[2600,2750],[4300,4600]]):
