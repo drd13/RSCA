@@ -228,9 +228,31 @@ class AstroNNVector(Vector):
         idxs_deleted = list(set(np.where(np.isnan(self.val))[0]))
         idxs_kept = np.delete(np.arange(len(self.val)),idxs_deleted)
         return Vector(val=self.val[idxs_kept])
+
+
+class AllStarVector(Vector):
+    def __init__(self,allStar,params):
+        self.allStar = allStar
+        self.params = params
+        self.FELEM_species =  ["C",  "CI",  "N",  "O",  "Na",  "Mg",  "Al",  "Si",  "P",  "S",  "K","Ca", "Ti", "TiII", "V", "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Ge", "Rb", "Ce","Nd","Yb"]
+        self._val = self.make_y(self.allStar,self.params)
+
+    def make_y(self,allStar,params):
+        values = []
+        for i,p in enumerate(params):
+            specie, relative_to = p.split("_")
+            if relative_to == "H":
+                p_values = allStar["X_H"][:,self.FELEM_species.index(specie)]
+            elif relative_to == "M":
+                p_values = allStar["X_M"][:,self.FELEM_species.index(specie)]
+            else:
+                print(p)
+                raise Exception("Some labels in params were not found")
+            values.append(p_values)
+            
+        return np.array(values).T
     
-    
-    
+   
   
     
     
