@@ -89,16 +89,16 @@ plt.figure(figsize=apoUtils.set_size(apoUtils.text_width))
 
 plt.plot(n_components,np.array([i.weighted_average for i in evaluators_X]),label="with cross-validation",color="blue",marker='o',markersize=11,markeredgecolor="black")
 plt.plot(n_components,np.array([i.weighted_average for i in evaluators_X_overfit]),label="without cross-validation",color="orange",marker='o',markersize=11,markeredgecolor="black")
-plt.axhline(y=evaluator_Y.weighted_average,c="blue",linestyle  = "--",label="stellar labels")
-plt.axhline(y=evaluator_Y_overfit.weighted_average,c="orange",linestyle  = "--",label="from stellar labels")
+#plt.axhline(y=evaluator_Y.weighted_average,c="blue",linestyle  = "--",label="stellar labels")
+#plt.axhline(y=evaluator_Y_overfit.weighted_average,c="orange",linestyle  = "--",label="from stellar labels")
 plt.ylabel("doppelganger rate")
 plt.xlabel("PCA dimensionality")
 plt.minorticks_on()
 
-dashed_line = mlines.Line2D([], [], color="black",linestyle="--",
-                          markersize=15, label='from stellar labels')
-full_line = mlines.Line2D([], [], color="black",linestyle="-",
-                          markersize=15, label='from spectra')
+#dashed_line = mlines.Line2D([], [], color="black",linestyle="--",
+#                          markersize=15, label='from stellar labels')
+#full_line = mlines.Line2D([], [], color="black",linestyle="-",
+#                          markersize=15, label='from spectra')
 blue_patch = mpatches.Patch(color='blue', label='with cross-validation')
 orange_patch = mpatches.Patch(color='orange', label='without cross-validation')
 

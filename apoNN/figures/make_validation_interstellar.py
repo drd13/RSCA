@@ -97,7 +97,7 @@ V = Z_fitter.transform(Z_fitter.z.centered(Z_occam[:,:z_dim]))
 
 
 Z_fitter_interstellar = standard_fitter(Z_interstellar[:,:z_dim],Z_occam_interstellar[:,:z_dim])
-V_interstellar = Z_fitter_interstellar.transform(Z_fitter.z.centered(Z_occam_interstellar[:,:z_dim]))
+V_interstellar = Z_fitter_interstellar.transform(Z_fitter_interstellar.z.centered(Z_occam_interstellar[:,:z_dim]))
 
 
 
@@ -116,51 +116,71 @@ similarities = similarities/np.mean(similarities)
 similarities_interstellar = similarities_interstellar/np.mean(similarities_interstellar)
 similarities_y = similarities_y/np.mean(similarities_y)
 
-
+save_path = root_path.parents[0]/"figures"/"validation"/"interstellar"
+save_path.mkdir(parents=True, exist_ok=True)
 
 try: 
     plt.style.use("tex")
 except:
     print("tex style not implemented (https://jwalton.info/Embed-Publication-Matplotlib-Latex/)")
+
+
+
+import matplotlib
+cmap = matplotlib.cm.get_cmap('viridis')
+color1 = cmap(0.15)
+color2 = cmap(0.75)
+
+
             
-plt.style.use('seaborn')
+figsize = list(apoUtils.set_size(apoUtils.text_width))
+figsize[0]=figsize[0]/3
+figsize[1]=figsize[1]/2.0
 
 
-fig, ax = plt.subplots(1, 3, figsize=apoUtils.set_size(apoUtils.text_width, fraction=2.5,subplots=(1, 3)))
+plt.figure(figsize=figsize)
+plt.hist(similarities[extinction_diffs<np.median(extinction_diffs)],bins = 40,color=color1,linewidth=2,density=True,label="similar extinction",histtype="step")
+plt.hist(similarities[extinction_diffs>np.median(extinction_diffs)],bins = 40,color=color2,linewidth=2,density=True,label="dissimilar extinction",histtype="step")
+plt.axvline(x=np.mean(similarities[extinction_diffs<np.median(extinction_diffs)]),color=color1,linestyle="--")
+plt.axvline(x=np.mean(similarities[extinction_diffs>np.median(extinction_diffs)]),color=color2,linestyle="--")
+plt.xlabel("similarity")
+plt.ylabel("$p$")
+plt.title("from masked spectra")
+plt.xlim([0,4])
+plt.ylim([0,1.25])
+#plt.legend(frameon=False,fontsize=6)
+plt.tight_layout()
+plt.savefig(save_path/"without_interstellar.pdf",format="pdf",bbox_inches='tight')
 
 
-ax[0].hist(similarities[extinction_diffs<np.median(extinction_diffs)],bins = 40,alpha=0.5,density=True,label="similar extinction pairs")
-ax[0].hist(similarities[extinction_diffs>np.median(extinction_diffs)],bins = 40,alpha=0.5,density=True,label="dissimilar extinction pairs")
-ax[0].axvline(x=np.mean(similarities[extinction_diffs<np.median(extinction_diffs)]))
-ax[0].axvline(x=np.mean(similarities[extinction_diffs>np.median(extinction_diffs)]),color="green")
 
-ax[0].set_xlabel("similarity")
-ax[0].set_ylabel("$p$")
-ax[0].set_title("from masked spectra")
-ax[0].set_xlim([0,3])
-ax[0].legend()
 
-ax[1].hist(similarities_interstellar[extinction_diffs_interstellar<np.median(extinction_diffs_interstellar)],bins = 40,alpha=0.5,density=True,label="similar extinction pairs")
-ax[1].hist(similarities_interstellar[extinction_diffs_interstellar>np.median(extinction_diffs_interstellar)],bins = 40,alpha=0.5,density=True,label="dissimilar extinction pairs")
-ax[1].axvline(x=np.mean(similarities_interstellar[extinction_diffs_interstellar<np.median(extinction_diffs_interstellar)]))
-ax[1].axvline(x=np.mean(similarities_interstellar[extinction_diffs_interstellar>np.median(extinction_diffs_interstellar)]),color="green")
+plt.figure(figsize=figsize)
+plt.hist(similarities_interstellar[extinction_diffs_interstellar<np.median(extinction_diffs_interstellar)],bins = 40,color=color1,linewidth=2,density=True,label="similar extinction",histtype="step")
+plt.hist(similarities_interstellar[extinction_diffs_interstellar>np.median(extinction_diffs_interstellar)],bins = 40,color=color2,linewidth=2,density=True,label="dissimilar extinction",histtype="step")
+plt.axvline(x=np.mean(similarities_interstellar[extinction_diffs_interstellar<np.median(extinction_diffs_interstellar)]),color=color1,linestyle="--")
+plt.axvline(x=np.mean(similarities_interstellar[extinction_diffs_interstellar>np.median(extinction_diffs_interstellar)]),color=color2,linestyle="--")
+plt.xlabel("similarity")
+plt.ylabel("$p$")
+plt.title("from full spectra")
+plt.xlim([0,4])
+plt.ylim([0,1.25])
+#plt.legend(frameon=False,fontsize=6)
+plt.tight_layout()
+plt.savefig(save_path/"with_interstellar.pdf",format="pdf",bbox_inches='tight')
 
-ax[1].set_xlabel("similarity")
-ax[1].set_ylabel("$p$")
-ax[1].set_title("from full spectra")
-ax[1].set_xlim([0,3])
-ax[1].legend()
 
-ax[2].hist(similarities_y[extinction_diffs_y<np.median(extinction_diffs_y)],bins = 20,alpha=0.5,density=True,label="similar extinction pairs")
-ax[2].hist(similarities_y[extinction_diffs_y>np.median(extinction_diffs_y)],bins = 20,alpha=0.5,density=True,label="dissimilar extinction pairs")
-ax[2].axvline(x=np.mean(similarities_y[extinction_diffs_y<np.median(extinction_diffs_y)]))
-ax[2].axvline(x=np.mean(similarities_y[extinction_diffs_y>np.median(extinction_diffs_y)]),color="green")
 
-ax[2].set_xlabel("similarity")
-ax[2].set_ylabel("$p$")
-ax[2].set_title("from stellar abundances")
-ax[2].set_xlim([0,3])
-ax[2].legend()
-
-plt.savefig("validation_interstellar.pdf",format="pdf")
-
+plt.figure(figsize=figsize)
+plt.hist(similarities_y[extinction_diffs_y<np.median(extinction_diffs_y)],bins = 40,color=color1,linewidth=2,density=True,label="similar extinction",histtype="step")
+plt.hist(similarities_y[extinction_diffs_y>np.median(extinction_diffs_y)],bins = 40,color=color2,linewidth=2,density=True,label="dissimilar extinction",histtype="step")
+plt.axvline(x=np.mean(similarities_y[extinction_diffs_y<np.median(extinction_diffs_y)]),color=color1,linestyle="--")
+plt.axvline(x=np.mean(similarities_y[extinction_diffs_y>np.median(extinction_diffs_y)]),color=color2,linestyle="--")
+plt.xlabel("similarity")
+plt.ylabel("$p$")
+plt.title("from abundances")
+plt.xlim([0,4])
+plt.ylim([0,1.25])
+plt.legend(frameon=False,fontsize=6)
+plt.tight_layout()
+plt.savefig(save_path/"with_y.pdf",format="pdf",bbox_inches='tight')
