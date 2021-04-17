@@ -100,40 +100,57 @@ similarities_y,velocity_diffs_y = get_similarity(V_Y.val,y_interest)
 similarities = similarities/np.mean(similarities)
 similarities_y = similarities_y/np.mean(similarities_y)
 
-
+save_path = root_path.parents[0]/"figures"/"validation"/"velocity"
+save_path.mkdir(parents=True, exist_ok=True)
 
 try: 
     plt.style.use("tex")
 except:
     print("tex style not implemented (https://jwalton.info/Embed-Publication-Matplotlib-Latex/)")
             
-plt.style.use('seaborn')
+import matplotlib
+cmap = matplotlib.cm.get_cmap('viridis')
+color1 = cmap(0.15)
+color2 = cmap(0.75)
 
 
-fig, ax = plt.subplots(1, 2, figsize=apoUtils.set_size(apoUtils.text_width, fraction=2.0,subplots=(1, 2)))
+figsize = list(apoUtils.set_size(apoUtils.text_width))
+figsize[0]=figsize[0]
+figsize[1]=figsize[1]/2
+
+fig, ax = plt.subplots(1,2,sharey="row",figsize=figsize,gridspec_kw={'hspace': 0, 'wspace': 0})
 
 
-ax[0].hist(similarities[velocity_diffs<np.median(velocity_diffs)],bins = 40,alpha=0.5,density=True,label="similar velocity pairs")
-ax[0].hist(similarities[velocity_diffs>np.median(velocity_diffs)],bins = 40,alpha=0.5,density=True,label="dissimilar velocity pairs")
-ax[0].axvline(x=np.mean(similarities[velocity_diffs<np.median(velocity_diffs)]))
-ax[0].axvline(x=np.mean(similarities[velocity_diffs>np.median(velocity_diffs)]),color="green")
-
-ax[0].set_xlabel("similarity")
+ax[0].hist(similarities[velocity_diffs<np.median(velocity_diffs)],bins = 40,color=color1,density=True,label="similar velocity",linewidth=2,histtype="step")
+ax[0].hist(similarities[velocity_diffs>np.median(velocity_diffs)],bins = 40,color=color2,density=True,label="dissimilar velocity",linewidth=2,histtype="step")
+ax[0].axvline(x=np.mean(similarities[velocity_diffs<np.median(velocity_diffs)]),color=color1,linestyle="--")
+ax[0].axvline(x=np.mean(similarities[velocity_diffs>np.median(velocity_diffs)]),color=color2,linestyle="--")
+#ax[0].set_xlabel("similarity")
 ax[0].set_ylabel("$p$")
 ax[0].set_title("from masked spectra")
 ax[0].set_xlim([0,3])
-ax[0].legend()
+ax[0].set_ylim([0,1.25])
+#ax[0].legend()
 
-ax[1].hist(similarities_y[velocity_diffs_y<np.median(velocity_diffs_y)],bins = 20,alpha=0.5,density=True,label="similar velocity pairs")
-ax[1].hist(similarities_y[velocity_diffs_y>np.median(velocity_diffs_y)],bins = 20,alpha=0.5,density=True,label="dissimilar velocity pairs")
-ax[1].axvline(x=np.mean(similarities_y[velocity_diffs_y<np.median(velocity_diffs_y)]))
-ax[1].axvline(x=np.mean(similarities_y[velocity_diffs_y>np.median(velocity_diffs_y)]),color="green")
+ax[1].hist(similarities_y[velocity_diffs_y<np.median(velocity_diffs_y)],bins = 20,color=color1,density=True,label="similar velocity",linewidth=2,histtype="step")
+ax[1].hist(similarities_y[velocity_diffs_y>np.median(velocity_diffs_y)],bins = 20,color=color2,density=True,label="dissimilar velocity",linewidth=2,histtype="step")
+ax[1].axvline(x=np.mean(similarities_y[velocity_diffs_y<np.median(velocity_diffs_y)]),color=color1,linestyle="--")
+ax[1].axvline(x=np.mean(similarities_y[velocity_diffs_y>np.median(velocity_diffs_y)]),color=color2,linestyle="--")
 
-ax[1].set_xlabel("similarity")
-ax[1].set_ylabel("$p$")
+#ax[1].set_xlabel("similarity")
+#ax[1].set_ylabel("$p$")
 ax[1].set_title("from stellar abundances")
 ax[1].set_xlim([0,3])
+ax[0].set_ylim([0,1.25])
 ax[1].legend()
 
-plt.savefig("validation_velocity.pdf",format="pdf")
+ax[0].xaxis.get_major_ticks()[-1].set_visible(False)
 
+
+fig.add_subplot(111, frameon=False)
+# hide tick and tick label of the big axis
+plt.tick_params(labelcolor='none', which='both', top=False, bottom=False, left=False, right=False)
+plt.xlabel("similarity")
+
+
+plt.savefig(save_path/"validation_velocity.pdf",format="pdf",bbox_inches='tight')

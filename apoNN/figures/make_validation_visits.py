@@ -131,31 +131,55 @@ try:
 except:
     print("tex style not implemented (https://jwalton.info/Embed-Publication-Matplotlib-Latex/)")
 
-plt.style.use('seaborn')
+save_path = root_path.parents[0]/"figures"/"validation"/"visits"
+save_path.mkdir(parents=True, exist_ok=True)
+
+import matplotlib
+cmap = matplotlib.cm.get_cmap('viridis')
+color1 = cmap(0.15)
+color2 = cmap(0.75)
 
 
+figsize = list(apoUtils.set_size(apoUtils.text_width))
+figsize[0]=figsize[0]
+figsize[1]=figsize[1]/2
+
+fig, ax = plt.subplots(1,2,sharey="row",figsize=figsize,gridspec_kw={'hspace': 0, 'wspace': 0})
 
 
-fig, ax = plt.subplots(1, 2, figsize=apoUtils.set_size(apoUtils.text_width, fraction=2.0,subplots=(1, 2)))
-
-ax[0].hist(similarities[overlaps==0],alpha=0.5,bins=10,density=False,label="observed separately")
-ax[0].hist(similarities[overlaps==1],alpha=0.5,bins=10,density=False,label="observed together")
-ax[0].axvline(x=np.mean(similarities[overlaps==0]))
-ax[0].axvline(x=np.mean(similarities[overlaps==1]),color="green")
-ax[0].set_xlabel("similarity")
-ax[0].set_ylabel("p")
+ax[0].hist(similarities[overlaps==0],bins = 20,color=color2,density=True,label="observed separately",linewidth=2,histtype="step")
+ax[0].hist(similarities[overlaps==1],bins = 20,color=color1,density=True,label="observed together",linewidth=2,histtype="step")
+ax[0].axvline(x=np.mean(similarities[overlaps==0]),color=color2,linestyle="--")
+ax[0].axvline(x=np.mean(similarities[overlaps==1]),color=color1,linestyle="--")
+#ax[0].set_xlabel("similarity")
+ax[0].set_ylabel("$p$")
 ax[0].set_title("from masked spectra")
-ax[0].set_xlim(0,2.)
-ax[0].legend()
+ax[0].set_xlim([0,3])
+ax[0].set_ylim([0,2])
+#ax[0].legend()
 
-ax[1].hist(similarities_y[overlaps_y==0],alpha=0.5,bins=15,density=False,label="observed separately")
-ax[1].hist(similarities_y[overlaps_y==1],alpha=0.5,bins=15,density=False,label="observed together")
-ax[1].axvline(x=np.mean(similarities_y[overlaps_y==0]))
-ax[1].axvline(x=np.mean(similarities_y[overlaps_y==1]),color="green")
-ax[1].set_xlabel("similarity")
-ax[1].set_ylabel("p")
+ax[1].hist(similarities_y[overlaps_y==1],bins = 20,color=color1,density=True,label="observed together",linewidth=2,histtype="step")
+ax[1].hist(similarities_y[overlaps_y==0],bins = 20,color=color2,density=True,label="observed separately",linewidth=2,histtype="step")
+ax[1].axvline(x=np.mean(similarities_y[overlaps_y==0]),color=color2,linestyle="--")
+ax[1].axvline(x=np.mean(similarities_y[overlaps_y==1]),color=color1,linestyle="--")
+
+#ax[1].set_xlabel("similarity")
+#ax[1].set_ylabel("$p$")
 ax[1].set_title("from stellar abundances")
-ax[1].set_xlim(0,3.5)
+ax[1].set_xlim([0,3])
+ax[0].set_ylim([0,2])
 ax[1].legend()
-                                                                                                                                                       
-plt.savefig("validation_visits.pdf",format="pdf")
+
+
+ax[0].xaxis.get_major_ticks()[-1].set_visible(False)
+
+
+
+fig.add_subplot(111, frameon=False)
+# hide tick and tick label of the big axis
+plt.tick_params(labelcolor='none', which='both', top=False, bottom=False, left=False, right=False)
+plt.xlabel("similarity")
+
+
+
+plt.savefig(save_path/"validation_visits.pdf",format="pdf",bbox_inches='tight')
