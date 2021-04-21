@@ -6,10 +6,14 @@ from pathlib import Path
 import apogee.tools.path as apath
 import apogee.spec.window as apwindow
 import apoNN.src.evaluators as evaluators
+import matplotlib
 
 
 text_width = 513.11743
 column_width =242.26653
+cmap = matplotlib.cm.get_cmap('viridis')
+color1 = cmap(0.15)
+color2 = cmap(0.75)
 
 
 #def get_interstellar_bands(interstellar_locs = [[750,900],[2400,2450],[2600,2750],[4300,4600]]):
