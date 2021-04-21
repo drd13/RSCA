@@ -125,17 +125,16 @@ with open(root_path/"spectra"/"without_interstellar"/"pop.p","wb") as f:
 
 ### Create Z without interstellar features masked
 
-mask_interstellar, interstellar_locs = apoUtils.get_interstellar_bands()
-z_without,z_occam_without,ppca = fitters.compress_masked_spectra(data_occamlike.masked_spectra,data_occam.masked_spectra,d,tol=tol)
-Z_occam = vectors.OccamVector(val = z_occam_without,cluster_names=cluster_idxs).remove_orphans()
-Z = vectors.Vector(val = z_without)
+z_with,z_occam_with,ppca = fitters.compress_masked_spectra(data_occamlike.masked_spectra,data_occam.masked_spectra,d,tol=tol)
+Z_occam_with = vectors.OccamVector(val = z_occam_with,cluster_names=cluster_idxs).remove_orphans()
+Z_with = vectors.Vector(val = z_with)
 
 
 with open(root_path/"spectra"/"with_interstellar"/"cluster.p","wb") as f:
-    pickle.dump(Z_occam,f)    
+    pickle.dump(Z_occam_with,f)    
 
 with open(root_path/"spectra"/"with_interstellar"/"pop.p","wb") as f:
-    pickle.dump(Z,f)    
+    pickle.dump(Z_with,f)    
 
 
 
