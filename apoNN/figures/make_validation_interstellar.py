@@ -126,12 +126,6 @@ except:
 
 
 
-import matplotlib
-cmap = matplotlib.cm.get_cmap('viridis')
-color1 = cmap(0.15)
-color2 = cmap(0.75)
-
-
 plt.style.use("tex")
 figsize = list(apoUtils.set_size(apoUtils.text_width))
 figsize[0]=figsize[0]
@@ -140,33 +134,33 @@ figsize[1]=figsize[1]/2
 fig, (ax1,ax2,ax3) = plt.subplots(1,3,sharey="row",figsize=figsize,gridspec_kw={'hspace': 0, 'wspace': 0})
 
 
-ax1.hist(similarities[extinction_diffs<np.median(extinction_diffs)],bins = 40,color=color1,linewidth=2,density=True,label="similar extinction",histtype="step")
-ax1.hist(similarities[extinction_diffs>np.median(extinction_diffs)],bins = 40,color=color2,linewidth=2,density=True,label="dissimilar extinction",histtype="step")
-ax1.axvline(x=np.mean(similarities[extinction_diffs<np.median(extinction_diffs)]),color=color1,linestyle="--")
-ax1.axvline(x=np.mean(similarities[extinction_diffs>np.median(extinction_diffs)]),color=color2,linestyle="--")
+ax1.hist(similarities[extinction_diffs<np.median(extinction_diffs)],bins = 40,color=apoUtils.color1,linewidth=2,density=True,label="similar extinction",histtype="step")
+ax1.hist(similarities[extinction_diffs>np.median(extinction_diffs)],bins = 40,color=apoUtils.color2,linewidth=2,density=True,label="dissimilar extinction",histtype="step")
+ax1.axvline(x=np.mean(similarities[extinction_diffs<np.median(extinction_diffs)]),color=apoUtils.color1,linestyle="--")
+ax1.axvline(x=np.mean(similarities[extinction_diffs>np.median(extinction_diffs)]),color=apoUtils.color2,linestyle="--")
 #ax1.set_xlabel("similarity")
-ax1.set_title("from masked spectra")
+ax1.set_title("From masked spectra")
 ax1.set_ylabel("$p$")
 ax1.set_xlim([0,3])
 ax1.set_ylim([0,1.5])
 
 
-ax2.hist(similarities_interstellar[extinction_diffs_interstellar<np.median(extinction_diffs_interstellar)],bins = 40,color=color1,linewidth=2,density=True,label="similar extinction",histtype="step")
-ax2.hist(similarities_interstellar[extinction_diffs_interstellar>np.median(extinction_diffs_interstellar)],bins = 40,color=color2,linewidth=2,density=True,label="dissimilar extinction",histtype="step")
-ax2.axvline(x=np.mean(similarities_interstellar[extinction_diffs_interstellar<np.median(extinction_diffs_interstellar)]),color=color1,linestyle="--")
-ax2.axvline(x=np.mean(similarities_interstellar[extinction_diffs_interstellar>np.median(extinction_diffs_interstellar)]),color=color2,linestyle="--")
-ax2.set_xlabel("similarity")
-ax2.set_title("from full spectra")
+ax2.hist(similarities_interstellar[extinction_diffs_interstellar<np.median(extinction_diffs_interstellar)],bins = 40,color=apoUtils.color1,linewidth=2,density=True,label="similar extinction",histtype="step")
+ax2.hist(similarities_interstellar[extinction_diffs_interstellar>np.median(extinction_diffs_interstellar)],bins = 40,color=apoUtils.color2,linewidth=2,density=True,label="dissimilar extinction",histtype="step")
+ax2.axvline(x=np.mean(similarities_interstellar[extinction_diffs_interstellar<np.median(extinction_diffs_interstellar)]),color=apoUtils.color1,linestyle="--")
+ax2.axvline(x=np.mean(similarities_interstellar[extinction_diffs_interstellar>np.median(extinction_diffs_interstellar)]),color=apoUtils.color2,linestyle="--")
+ax2.set_xlabel("Similarity")
+ax2.set_title("From full spectra")
 ax2.set_xlim([0,3])
 ax2.set_ylim([0,1.5])
 
 
-ax3.hist(similarities_y[extinction_diffs_y<np.median(extinction_diffs_y)],bins = 40,color=color1,linewidth=2,density=True,label="similar extinction",histtype="step")
-ax3.hist(similarities_y[extinction_diffs_y>np.median(extinction_diffs_y)],bins = 40,color=color2,linewidth=2,density=True,label="dissimilar extinction",histtype="step")
-ax3.axvline(x=np.mean(similarities_y[extinction_diffs_y<np.median(extinction_diffs_y)]),color=color1,linestyle="--")
-ax3.axvline(x=np.mean(similarities_y[extinction_diffs_y>np.median(extinction_diffs_y)]),color=color2,linestyle="--")
+ax3.hist(similarities_y[extinction_diffs_y<np.median(extinction_diffs_y)],bins = 40,color=apoUtils.color1,linewidth=2,density=True,label="similar extinction",histtype="step")
+ax3.hist(similarities_y[extinction_diffs_y>np.median(extinction_diffs_y)],bins = 40,color=apoUtils.color2,linewidth=2,density=True,label="dissimilar extinction",histtype="step")
+ax3.axvline(x=np.mean(similarities_y[extinction_diffs_y<np.median(extinction_diffs_y)]),color=apoUtils.color1,linestyle="--")
+ax3.axvline(x=np.mean(similarities_y[extinction_diffs_y>np.median(extinction_diffs_y)]),color=apoUtils.color2,linestyle="--")
 #ax3.set_xlabel("similarity")
-ax3.set_title("from abundances")
+ax3.set_title("From abundances")
 ax3.set_xlim([0,3])
 ax3.set_ylim([0,1.5])
 ax3.legend(frameon=True)

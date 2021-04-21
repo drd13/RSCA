@@ -66,7 +66,7 @@ evaluator_Y_overfit = evaluators.StandardEvaluator(Y,Y_occam,leave_out=False,fit
 evaluator_Y_overfit.weighted_average
 
 
-n_components = [5,10,15,20,25,35,45,55,65,75,85,95]
+n_components = [5,10,15,20,25,30,35,40,45,50,55,60]
 evaluators_X = [evaluators.StandardEvaluator(Z[:,:n_component],Z_occam[:,:n_component],leave_out=True,fitter_class=standard_fitter) for n_component in n_components]
 
 
@@ -85,13 +85,13 @@ save_path.mkdir(parents=True, exist_ok=True)
 
 
 
-plt.figure(figsize=apoUtils.set_size(apoUtils.text_width))
+plt.figure(figsize=apoUtils.set_size(apoUtils.column_width))
 
-plt.plot(n_components,np.array([i.weighted_average for i in evaluators_X]),label="with cross-validation",color="blue",marker='o',markersize=11,markeredgecolor="black")
-plt.plot(n_components,np.array([i.weighted_average for i in evaluators_X_overfit]),label="without cross-validation",color="orange",marker='o',markersize=11,markeredgecolor="black")
+plt.plot(n_components,np.array([i.weighted_average for i in evaluators_X]),label="with cross-validation",color=apoUtils.color1,marker='o',markersize=9,markeredgecolor="black")
+plt.plot(n_components,np.array([i.weighted_average for i in evaluators_X_overfit]),label="without cross-validation",color=apoUtils.color2,marker='o',markersize=9,markeredgecolor="black")
 #plt.axhline(y=evaluator_Y.weighted_average,c="blue",linestyle  = "--",label="stellar labels")
 #plt.axhline(y=evaluator_Y_overfit.weighted_average,c="orange",linestyle  = "--",label="from stellar labels")
-plt.ylabel("doppelganger rate")
+plt.ylabel("Doppelganger rate")
 plt.xlabel("PCA dimensionality")
 plt.minorticks_on()
 
@@ -99,11 +99,11 @@ plt.minorticks_on()
 #                          markersize=15, label='from stellar labels')
 #full_line = mlines.Line2D([], [], color="black",linestyle="-",
 #                          markersize=15, label='from spectra')
-blue_patch = mpatches.Patch(color='blue', label='with cross-validation')
-orange_patch = mpatches.Patch(color='orange', label='without cross-validation')
+blue_patch = mpatches.Patch(color=apoUtils.color1, label='With cross-validation')
+orange_patch = mpatches.Patch(color=apoUtils.color2, label='Without cross-validation')
 
 
-plt.legend(handles=[full_line,dashed_line,blue_patch,orange_patch],frameon=False)
-#plt.legend(frameon=False)
+#plt.legend(handles=[full_line,dashed_line,blue_patch,orange_patch],frameon=False)
+plt.legend(handles=[blue_patch,orange_patch],frameon=False)
 plt.ylim(0,0.06)
-plt.savefig(save_path/"pca_dimensionality.pdf",format="pdf")
+plt.savefig(save_path/"pca_dimensionality.pdf",format="pdf",bbox_inches='tight')

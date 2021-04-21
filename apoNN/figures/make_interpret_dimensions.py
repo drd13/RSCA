@@ -41,8 +41,8 @@ apogee_path.change_dr(16)
 
 ###Setup
 
-#root_path = pathlib.Path(__file__).resolve().parents[2]/"outputs"/"data"
-root_path = pathlib.Path("/share/splinter/ddm/taggingProject/tidyPCA/apoNN/scripts").parents[1]/"outputs"/"data"
+root_path = pathlib.Path(__file__).resolve().parents[2]/"outputs"/"data"
+#root_path = pathlib.Path("/share/splinter/ddm/taggingProject/tidyPCA/apoNN/scripts").parents[1]/"outputs"/"data"
 
 
 def standard_fitter(z,z_occam):
@@ -103,8 +103,8 @@ V_occam = Z_fitter.transform(Z_occam[:,:z_dim].centered())
 ###
 
 figsize = np.array(apoUtils.set_size(apoUtils.text_width))
-figsize[0] = figsize[0]/2
-figsize[1] = figsize[1]/1.5
+figsize[0] = figsize[0]/3
+figsize[1] = figsize[1]*4/9
 
 
 save_path = root_path.parents[0]/"figures"/"interpretation"
@@ -122,7 +122,7 @@ plt.ylim(-35,35)
 plt.ylabel("Feature \#1")
 plt.xlabel("[Fe/H]")
 plt.tight_layout()
-plt.savefig(save_path/"feature1.pdf",format="pdf")
+plt.savefig(save_path/"feature1.pdf",bbox_inches="tight",format="pdf")
 
 
 
@@ -134,7 +134,7 @@ plt.ylim(-30,40)
 plt.ylabel("Feature \#2")
 plt.xlabel("[Fe/H]")
 plt.tight_layout()
-plt.savefig(save_path/"feature2.pdf",format="pdf")
+plt.savefig(save_path/"feature2.pdf",bbox_inches="tight",format="pdf")
 
 
 
@@ -146,7 +146,7 @@ plt.ylim(-20,50)
 plt.ylabel("Feature \#3")
 plt.xlabel("[Fe/H]")
 plt.tight_layout()
-plt.savefig(save_path/"feature3.pdf",format="pdf")
+plt.savefig(save_path/"feature3.pdf",bbox_inches="tight",format="pdf")
 
 
 fig = plt.figure(figsize=figsize)
@@ -157,5 +157,5 @@ plt.ylim(-0.2,0.5)
 plt.xlabel("[Fe/H]")
 plt.ylabel("[Mg/Fe]")
 plt.tight_layout()
-plt.savefig(save_path/"mg.pdf",format="pdf")
+plt.savefig(save_path/"mg.pdf",bbox_inches="tight",format="pdf")
 

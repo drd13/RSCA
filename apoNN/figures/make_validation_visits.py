@@ -140,7 +140,7 @@ color1 = cmap(0.15)
 color2 = cmap(0.75)
 
 
-figsize = list(apoUtils.set_size(apoUtils.text_width))
+figsize = list(apoUtils.set_size(apoUtils.column_width))
 figsize[0]=figsize[0]
 figsize[1]=figsize[1]/2
 
@@ -153,7 +153,7 @@ ax[0].axvline(x=np.mean(similarities[overlaps==0]),color=color2,linestyle="--")
 ax[0].axvline(x=np.mean(similarities[overlaps==1]),color=color1,linestyle="--")
 #ax[0].set_xlabel("similarity")
 ax[0].set_ylabel("$p$")
-ax[0].set_title("from masked spectra")
+ax[0].set_title("From spectra")
 ax[0].set_xlim([0,3])
 ax[0].set_ylim([0,2])
 #ax[0].legend()
@@ -165,7 +165,7 @@ ax[1].axvline(x=np.mean(similarities_y[overlaps_y==1]),color=color1,linestyle="-
 
 #ax[1].set_xlabel("similarity")
 #ax[1].set_ylabel("$p$")
-ax[1].set_title("from stellar abundances")
+ax[1].set_title("From stellar abundances")
 ax[1].set_xlim([0,3])
 ax[0].set_ylim([0,2])
 ax[1].legend()
@@ -178,7 +178,7 @@ ax[0].xaxis.get_major_ticks()[-1].set_visible(False)
 fig.add_subplot(111, frameon=False)
 # hide tick and tick label of the big axis
 plt.tick_params(labelcolor='none', which='both', top=False, bottom=False, left=False, right=False)
-plt.xlabel("similarity")
+plt.xlabel("Similarity")
 
 
 

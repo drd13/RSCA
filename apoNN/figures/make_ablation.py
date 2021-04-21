@@ -31,9 +31,9 @@ def autolabel(rects):
     """
     for rect in rects:
         height = rect.get_height()
-        ax.text(rect.get_x() + rect.get_width()/2., 0.995*height,
+        ax.text(rect.get_x() + rect.get_width()/2., 0.99*height,
                 f"{height:.3f}",
-                ha='center', va='bottom')
+                ha='center', va='bottom',fontsize=6)
 
 def ablation_performance(Z,Z_occam):
     ev_standard = evaluators.StandardEvaluator(Z,Z_occam,leave_out=True,fitter_class=standard_fitter)
@@ -86,7 +86,7 @@ plt.style.use('seaborn-colorblind')
 plt.style.use('tex')
 
 
-labels = ["spectra","all abundances","abundance subset"]
+labels = ["Spectra","All abundances","Abundance subset"]
 x = np.arange(len(labels))  # the label locations
 width = 0.26  # the width of the bars
 
@@ -99,22 +99,22 @@ save_path = root_path.parents[0]/"figures"/"ablation"
 save_path.mkdir(parents=True, exist_ok=True)
 
 
-
-fig, ax = plt.subplots(figsize =apoUtils.set_size(apoUtils.text_width))
-rects1 = ax.bar(x-width, no_transformation, width, label='on raw')
-rects2 = ax.bar(x, only_scaling, width, label='on scaled')
-rects3 = ax.bar(x +width, full_algorithm, width, label='on transformed')
+fig, ax = plt.subplots(figsize =apoUtils.set_size(apoUtils.column_width))
+rects1 = ax.bar(x-width, no_transformation, width, label='On raw')
+rects2 = ax.bar(x, only_scaling, width, label='On scaled')
+rects3 = ax.bar(x +width, full_algorithm, width, label='On transformed')
 autolabel(rects1)
 autolabel(rects2)
 autolabel(rects3)
 
 plt.title("Ablation study")
 
-ax.set_ylabel('global doppelganger rate')
+ax.set_ylabel('Doppelganger rate',fontsize=8)
 ax.set_xticks(x)
-ax.set_xticklabels(labels)
-ax.legend(frameon=False)
+ax.set_ylim([0,0.07])
+ax.set_xticklabels(labels, fontsize=7)
+ax.legend(frameon=True)
 
 #plt.savefig(pathlib.Path(__file__).resolve().parents[2]/"")
 
-plt.savefig(save_path/"ablation.pdf",format="pdf")
+plt.savefig(save_path/"ablation.pdf",format="pdf",bbox_inches='tight')
