@@ -242,7 +242,7 @@ class BaseEvaluator(abc.ABC):
         return distances
     
     
-    def plot_cluster(self,cluster_name,ax1=None,x_max=30):
+    def plot_cluster(self,cluster_name,ax1=None,x_max=30,color1="orange",color2="blue"):
         """function for visualizing the doppelganger rate of a chosen cluster.
         INPUTS
         ------
@@ -254,21 +254,19 @@ class BaseEvaluator(abc.ABC):
         if ax1 is None:
             ax1 = plt.gca()
         index_cluster = sorted(self.registry).index(cluster_name)
-        ax1.set_title(f"{cluster_name} ({self.stars_per_cluster[index_cluster]} stars), rate: {self.doppelganger_rates[index_cluster]:5.4f}")
+        ax1.set_title(f"{cluster_name} ({self.stars_per_cluster[index_cluster]} stars), rate: {self.doppelganger_rates[index_cluster]:5.4f}",fontsize=10)
 
-        color1 = 'tab:blue'
         ax1.set_xlabel('distance')
         ax1.set_ylabel('p', color=color1)
         ax1.tick_params(axis='y', labelcolor=color1)
         ax1.set_xlim(0,x_max)
-        ax1.hist(self.distances[index_cluster],alpha=0.5,bins=self.stars_per_cluster[index_cluster],density=True,label="intercluster",color=color1)
+        ax1.hist(self.distances[index_cluster],bins=self.stars_per_cluster[index_cluster],density=True,label="intercluster",color=color1,linewidth=2,histtype="step")
 
-        color2 = 'tab:orange'
         ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
-        ax2.hist(self.random_distances[index_cluster],alpha=0.5,bins=200,density=True,label="random",color=color2)
+        ax2.hist(self.random_distances[index_cluster],bins=200,density=True,label="intracluster",color=color2,linewidth=2,histtype="step")
         ax2.set_ylabel('p', color=color2)  # we already handled the x-label with ax1
         ax2.tick_params(axis='y', labelcolor=color2)
-        ax2.axvline(x=np.median(self.distances[index_cluster]),c="red",linestyle  = "--",linewidth=2)
+        ax2.axvline(x=np.median(self.distances[index_cluster]),color=color2,linestyle  = "--",linewidth=2)
 
 
 
