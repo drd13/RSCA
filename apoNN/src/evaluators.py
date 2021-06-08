@@ -266,7 +266,7 @@ class BaseEvaluator(abc.ABC):
         ax2.hist(self.random_distances[index_cluster],bins=200,density=True,label="intracluster",color=color2,linewidth=2,histtype="step")
         ax2.set_ylabel('p', color=color2)  # we already handled the x-label with ax1
         ax2.tick_params(axis='y', labelcolor=color2)
-        ax2.axvline(x=np.median(self.distances[index_cluster]),color=color2,linestyle  = "--",linewidth=2)
+        ax2.axvline(x=np.median(self.distances[index_cluster]),color=color1,linestyle  = "--",linewidth=2)
 
 
 
