@@ -298,7 +298,60 @@ class StandardEvaluator(BaseEvaluator):
         return distances,random_distances
     
     
-    
+class EvaluatorWithFiltering(StandardEvaluator):
+    """Evaluator which allows for specitifying through valid_idxs which pairs of field-open-cluster stars should be included in the doppelganger rate calculation. Useful for, for example, comparing stars at the same metallicity."""
+    def __init__(self,Y,Y_occam,leave_out=True,fitter_class = fitters.StandardFitter, valid_idxs=None):
+        """
+        INPUTS
+        ------
+        valid_idxs: N_Y_Occam * N_Y (boolean)
+           only calculates intercluster distance using pairs of stars for which valid_idxs[i,j]=True
+            
+        """
+        self.valid_idxs = valid_idxs
+        super().__init__(Y,Y_occam,leave_out=True,fitter_class=fitter_class)
+        
+    def get_distances(self,Y,Y_occam,leave_out,fitter_class):
+        distances = self.get_intracluster_distances(Y,Y_occam,fitter_class=fitter_class,leave_out = leave_out)
+        random_distances = self.get_comprehensive_intercluster_distances(Y,Y_occam,fitter_class=fitter_class,n_random=1000,leave_out = leave_out)
+        return distances,random_distances
+        
+    def get_comprehensive_intercluster_distances(self,z,z_occam,leave_out=True,fitter_class=fitters.StandardFitter,n_random=None):
+        """Measures intercluster distances (between stars in a cluster and stars from the field) after fitting and transforming. Uses all combinations of stars to get distances
+        INPUTS
+        ------
+        z: apoNN.vector.Vector
+            A vector containing the field star dataset
+        z_occam: vector.OccamVector
+            A vector containing the occam cluster stars
+        leave_out: Boolean
+            True corresponds to excluding clusters being evaluated from training so as to avoid overfitting 
+        n_random: int
+            Number of field stars each cluster star is compared too.
+        fitter_class: Fitter
+            Fitter class that is used for rescaling.
+        """
+        distances = []
+        for cluster in sorted(z_occam.registry):
+            valid_idxs = self.valid_idxs[z_occam.registry[cluster]]
+            if leave_out is True:
+                fitter = fitter_class(z,z_occam.without(cluster))
+                #valid_idxs = np.delete(self.valid_idxs,z_occam.registry[cluster],axis=0).shape
+            else:
+                fitter = fitter_class(z,z_occam)
+                #valid_idxs= self.valid_idxs
+            v_centered_occam = fitter.transform(z_occam.centered().only(cluster)).val
+            v = fitter.transform(z.centered(z_occam)).val
+            n_v = len(v)
+            n_v_occam = len(v_centered_occam)
+
+            v_centered_occam = np.repeat(v_centered_occam[:,  np.newaxis, :], n_v, axis=1)[valid_idxs]
+            v = np.repeat(v[np.newaxis,:,:],n_v_occam,axis=0)[valid_idxs]
+
+            #v=v[valid_idxs]
+            distances_cluster = np.linalg.norm(v_centered_occam-v,axis=1)
+            distances.append(distances_cluster.flatten())
+        return distances
     
 
         
