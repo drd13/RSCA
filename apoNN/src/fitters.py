@@ -149,8 +149,7 @@ class StandardFitter(BaseFitter):
         return transformed_vector
     
     
-    
-    
+     
        
 class SimpleFitter(BaseFitter):
     """This is a fitter that carries out the rescaling in the original basis of the representation (ie no change of basis)."""
@@ -203,6 +202,29 @@ class EmptyFitter():
             return vector.__class__(cluster_names = vector.cluster_names, val = vector.val)
         else:
             return vector.__class__(val=vector.val)
+
+
+class TopNFitter(StandardFitter):
+    def __init__(self,z:vectors.Vector,z_occam:vectors.OccamVector,use_relative_scaling=True, use_whitening=True,is_pooled=True,is_robust=True,N=3):        
+        """The StandardFitter, as used in the paper. Scales the representation through a 3 step procedure consisting of 1) whitening 2) change-of-basis 3) rescaling.
+        INPUTS
+        ------
+        z: vector.Vector
+            Vector containing large dataset of stellar spectra
+        z_occam:vector.OccamVector
+            Vector containing dataset of known occam cluster member stars
+        use_relative_scaling: Boolean
+            When True uses the relative scaling presented in the paper, otherwise use a simple scaling based only on intercluster standard deviation.
+        is_pooled: Boolean
+            If True use a pooled variance estimator, otherwise used standard variance estimator.
+        is_robust: Boolean
+            If True, replace the mean standard deviation with the more robust mean absolute deviation in the scaling calculations.
+            """
+        StandardFitter.__init__(self,z=z,z_occam=z_occam,use_relative_scaling=use_relative_scaling, use_whitening=use_whitening,is_pooled=is_pooled,is_robust=is_robust)
+        not_smallest_3 = self.scaling_factor.argsort()[N:]
+        self.scaling_factor[not_smallest_3]=10**5
+
+
 
 
 
