@@ -89,7 +89,7 @@ rec_spec_low =  pca.inverse_transform(pca.transform(spectra_low))
 rec_spec_high =  pca.inverse_transform(pca.transform(spectra_high))
 
 #diff_res = np.mean((np.abs(spectra_high-rec_spec_high)),axis=0)-np.mean((np.abs(spectra_low-rec_spec_low)),axis=0)
-diff_res = np.mean((np.abs(spectra_high-rec_spec_high)),axis=0)
+diff_res = np.mean((spectra_high-rec_spec_high),axis=0)
 
 ### Create figure
 

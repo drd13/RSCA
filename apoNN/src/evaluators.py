@@ -309,7 +309,7 @@ class EvaluatorWithFiltering(StandardEvaluator):
             
         """
         self.valid_idxs = valid_idxs
-        super().__init__(Y,Y_occam,leave_out=True,fitter_class=fitter_class)
+        super().__init__(Y,Y_occam,leave_out=leave_out,fitter_class=fitter_class)
         
     def get_distances(self,Y,Y_occam,leave_out,fitter_class):
         distances = self.get_intracluster_distances(Y,Y_occam,fitter_class=fitter_class,leave_out = leave_out)

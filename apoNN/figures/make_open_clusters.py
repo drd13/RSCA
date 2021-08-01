@@ -30,7 +30,7 @@ def standard_fitter(z,z_occam):
         return fitters.StandardFitter(z,z_occam,use_relative_scaling=True,is_pooled=True,is_robust=True)
 
 def simple_fitter(z,z_occam):
-        """This is a simple fitter that just scales the dimensions of the inputed representation. Which is used as a baseline"""
+        """This is a simple fitter that just scales the dimensions of the inputed representation. Which is used as a abundances"""
         return fitters.SimpleFitter(z,z_occam,use_relative_scaling=True,is_pooled=True,is_robust=True)
 
 
@@ -67,10 +67,12 @@ with open(root_path/"labels"/"core"/"pop.p","rb") as f:
 
 ###calculate representations being visualized
 
-evaluator_X = evaluators.StandardEvaluator(Z[:,:z_dim],Z_occam[:,:z_dim],leave_out=True,fitter_class=standard_fitter)
+valid_idxs = apoUtils.get_valid_intercluster_idxs()
+
+evaluator_X = evaluators.EvaluatorWithFiltering(Z[:,:z_dim],Z_occam[:,:z_dim],leave_out=True,fitter_class=standard_fitter,valid_idxs=valid_idxs)
 evaluator_X.weighted_average
 
-evaluator_Y = evaluators.StandardEvaluator(Y,Y_occam,leave_out=True,fitter_class=standard_fitter)
+evaluator_Y = evaluators.EvaluatorWithFiltering(Y,Y_occam,leave_out=True,fitter_class=standard_fitter,valid_idxs=valid_idxs)
 evaluator_Y.weighted_average
 
 ### Define plotting function
@@ -83,7 +85,7 @@ def plot_cluster(evaluator,cluster_name,ax1=None,x_max=30,color1="orange",color2
         the name of the cluster (as found in the registry) to be plotted.
     ax1: matplotlib axis
         an axis on which to plot the cluster. Useful when combining subplots of individual clusters into one large plot.
-    x_max: The cut-off to use on the x-axis of distances
+    x_max: The cut-off to use on the x-axis of ds
     cutoff_percentile:
         number between 0-100 controlling the cutoff xlim. Dictates the fraction of pdf to include within bounds."""
     if ax1 is None:
@@ -93,7 +95,7 @@ def plot_cluster(evaluator,cluster_name,ax1=None,x_max=30,color1="orange",color2
     if title is not None:
         ax1.set_title(title,fontsize=14)
 
-    ax1.set_xlabel('distance')
+    ax1.set_xlabel('d')
     ax1.set_ylabel('p', color=color1)
     ax1.tick_params(axis='y', labelcolor=color1)
     x_max = np.percentile(evaluator.random_distances[index_cluster],cutoff_percentile)
@@ -131,13 +133,13 @@ for i in range(n_rows):
     if i==0:  
         plot_cluster(evaluator_X,sorted(evaluator_X.registry)[i+start_idx],spec_ax,x_max=30,color1=color1,color2=color2,title="spectra")
         abund_ax = fig.add_subplot(gspec[i,1])
-        #abund_ax.set_xlabel("distance",fontsize=20)
-        plot_cluster(evaluator_Y,sorted(evaluator_Y.registry)[i+start_idx],abund_ax,x_max=20,color1=color1,color2=color2,use_annotation=False,title="baseline")
+        #abund_ax.set_xlabel("d",fontsize=20)
+        plot_cluster(evaluator_Y,sorted(evaluator_Y.registry)[i+start_idx],abund_ax,x_max=20,color1=color1,color2=color2,use_annotation=False,title="abundances")
 
     if i!=0:  
         plot_cluster(evaluator_X,sorted(evaluator_X.registry)[i+start_idx],spec_ax,x_max=30,color1=color1,color2=color2)
         abund_ax = fig.add_subplot(gspec[i,1])
-        #abund_ax.set_xlabel("distance",fontsize=20)
+        #abund_ax.set_xlabel("d",fontsize=20)
         plot_cluster(evaluator_Y,sorted(evaluator_Y.registry)[i+start_idx],abund_ax,x_max=20,color1=color1,color2=color2,use_annotation=False)
 
 plt.savefig(save_path/"loc1.pdf",format="pdf")
@@ -154,13 +156,13 @@ for i in range(n_rows):
     if i==0:  
         plot_cluster(evaluator_X,sorted(evaluator_X.registry)[i+start_idx],spec_ax,x_max=30,color1=color1,color2=color2,title="spectra")
         abund_ax = fig.add_subplot(gspec[i,1])
-        #abund_ax.set_xlabel("distance",fontsize=20)
-        plot_cluster(evaluator_Y,sorted(evaluator_Y.registry)[i+start_idx],abund_ax,x_max=20,color1=color1,color2=color2,use_annotation=False,title="baseline")
+        #abund_ax.set_xlabel("d",fontsize=20)
+        plot_cluster(evaluator_Y,sorted(evaluator_Y.registry)[i+start_idx],abund_ax,x_max=20,color1=color1,color2=color2,use_annotation=False,title="abundances")
 
     if i!=0:  
         plot_cluster(evaluator_X,sorted(evaluator_X.registry)[i+start_idx],spec_ax,x_max=30,color1=color1,color2=color2)
         abund_ax = fig.add_subplot(gspec[i,1])
-        #abund_ax.set_xlabel("distance",fontsize=20)
+        #abund_ax.set_xlabel("d",fontsize=20)
         plot_cluster(evaluator_Y,sorted(evaluator_Y.registry)[i+start_idx],abund_ax,x_max=20,color1=color1,color2=color2,use_annotation=False)
 plt.savefig(save_path/"loc2.pdf",format="pdf")
 
@@ -176,13 +178,13 @@ for i in range(n_rows):
     if i==0:  
         plot_cluster(evaluator_X,sorted(evaluator_X.registry)[i+start_idx],spec_ax,x_max=30,color1=color1,color2=color2,title="spectra")
         abund_ax = fig.add_subplot(gspec[i,1])
-        #abund_ax.set_xlabel("distance",fontsize=20)
-        plot_cluster(evaluator_Y,sorted(evaluator_Y.registry)[i+start_idx],abund_ax,x_max=20,color1=color1,color2=color2,use_annotation=False,title="baseline")
+        #abund_ax.set_xlabel("d",fontsize=20)
+        plot_cluster(evaluator_Y,sorted(evaluator_Y.registry)[i+start_idx],abund_ax,x_max=20,color1=color1,color2=color2,use_annotation=False,title="abundances")
 
     if i!=0:  
         plot_cluster(evaluator_X,sorted(evaluator_X.registry)[i+start_idx],spec_ax,x_max=30,color1=color1,color2=color2)
         abund_ax = fig.add_subplot(gspec[i,1])
-        #abund_ax.set_xlabel("distance",fontsize=20)
+        #abund_ax.set_xlabel("d",fontsize=20)
         plot_cluster(evaluator_Y,sorted(evaluator_Y.registry)[i+start_idx],abund_ax,x_max=20,color1=color1,color2=color2,use_annotation=False)
 plt.savefig(save_path/"loc3.pdf",format="pdf")
 
@@ -199,13 +201,13 @@ for i in range(n_rows):
     if i==0:  
         plot_cluster(evaluator_X,sorted(evaluator_X.registry)[i+start_idx],spec_ax,x_max=30,color1=color1,color2=color2,title="spectra")
         abund_ax = fig.add_subplot(gspec[i,1])
-        #abund_ax.set_xlabel("distance",fontsize=20)
-        plot_cluster(evaluator_Y,sorted(evaluator_Y.registry)[i+start_idx],abund_ax,x_max=20,color1=color1,color2=color2,use_annotation=False,title="baseline")
+        #abund_ax.set_xlabel("d",fontsize=20)
+        plot_cluster(evaluator_Y,sorted(evaluator_Y.registry)[i+start_idx],abund_ax,x_max=20,color1=color1,color2=color2,use_annotation=False,title="abundances")
 
     if i!=0:  
         plot_cluster(evaluator_X,sorted(evaluator_X.registry)[i+start_idx],spec_ax,x_max=30,color1=color1,color2=color2)
         abund_ax = fig.add_subplot(gspec[i,1])
-        #abund_ax.set_xlabel("distance",fontsize=20)
+        #abund_ax.set_xlabel("d",fontsize=20)
         plot_cluster(evaluator_Y,sorted(evaluator_Y.registry)[i+start_idx],abund_ax,x_max=20,color1=color1,color2=color2,use_annotation=False)
 plt.savefig(save_path/"loc4.pdf",format="pdf")
     

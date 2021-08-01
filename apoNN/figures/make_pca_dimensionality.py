@@ -57,20 +57,20 @@ with open(root_path/"labels"/"core"/"pop.p","rb") as f:
 
 
 #### Plotting ##############
+valid_idxs = apoUtils.get_valid_intercluster_idxs()
 
-
-evaluator_Y = evaluators.StandardEvaluator(Y,Y_occam,leave_out=True,fitter_class=standard_fitter)
+evaluator_Y = evaluators.EvaluatorWithFiltering(Y,Y_occam,leave_out=True,fitter_class=standard_fitter,valid_idxs=valid_idxs)
 evaluator_Y.weighted_average
 
-evaluator_Y_overfit = evaluators.StandardEvaluator(Y,Y_occam,leave_out=False,fitter_class=standard_fitter)
+evaluator_Y_overfit = evaluators.EvaluatorWithFiltering(Y,Y_occam,leave_out=False,fitter_class=standard_fitter,valid_idxs=valid_idxs)
 evaluator_Y_overfit.weighted_average
 
 
 n_components = [5,10,15,20,25,30,35,40,45,50,55,60]
-evaluators_X = [evaluators.StandardEvaluator(Z[:,:n_component],Z_occam[:,:n_component],leave_out=True,fitter_class=standard_fitter) for n_component in n_components]
+evaluators_X = [evaluators.EvaluatorWithFiltering(Z[:,:n_component],Z_occam[:,:n_component],leave_out=True,fitter_class=standard_fitter,valid_idxs=valid_idxs) for n_component in n_components]
 
 
-evaluators_X_overfit = [evaluators.StandardEvaluator(Z[:,:n_component],Z_occam[:,:n_component],leave_out=False,fitter_class=standard_fitter) for n_component in n_components]
+evaluators_X_overfit = [evaluators.EvaluatorWithFiltering(Z[:,:n_component],Z_occam[:,:n_component],leave_out=False,fitter_class=standard_fitter,valid_idxs=valid_idxs) for n_component in n_components]
 
 
 

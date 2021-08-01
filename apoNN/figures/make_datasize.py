@@ -33,10 +33,11 @@ def simple_fitter(z,z_occam):
         """This is a simple fitter that just scales the dimensions of the inputed representation. Which is used as a baseline"""
         return fitters.SimpleFitter(z,z_occam,use_relative_scaling=True,is_pooled=True,is_robust=True)
 
-
 def get_n_random_clusters(vector_occam,n_clusters):
     cluster_list = random.sample(list(vector_occam.registry),n_clusters)
-    return vector_occam.only(cluster_list)
+    cluster_idxs = [val for cluster in cluster_list for val in Z_occam.registry[cluster]]
+    return vector_occam.only(cluster_list),cluster_idxs
+
 
 def make_doppelganger_vs_clusters(n_clusters_considered,X,X_occam,n_repeats):
     """
@@ -53,10 +54,10 @@ def make_doppelganger_vs_clusters(n_clusters_considered,X,X_occam,n_repeats):
     for n_clusters in n_clusters_considered:
         res.append([])
         for _ in range(n_repeats):
-            X_restricted = get_n_random_clusters(X_occam,n_clusters)
+            X_restricted,restricted_idxs = get_n_random_clusters(X_occam,n_clusters)
             print(X.val.shape)
             print(X_restricted.val.shape)
-            evaluator_X = evaluators.StandardEvaluator(X,X_restricted,leave_out=True,fitter_class=standard_fitter)
+            evaluator_X = evaluators.EvaluatorWithFiltering(X,X_restricted,leave_out=True,fitter_class=standard_fitter,valid_idxs=valid_idxs[restricted_idxs])
             res[-1].append(evaluator_X.weighted_average)  
     return res
 
@@ -79,14 +80,12 @@ with open(root_path/"spectra"/"without_interstellar"/"pop.p","rb") as f:
 ###
 ###
 
-with open(root_path/"labels"/"core"/"cluster.p","rb") as f:
-    Y_occam = pickle.load(f)
-
-with open(root_path/"labels"/"core"/"pop.p","rb") as f:
-    Y = pickle.load(f)
+valid_idxs = apoUtils.get_valid_intercluster_idxs()
+   
 
 
 ### Calculations
+
 
 n_repeats = 50 #How many different combinations of clusters to sample for each size
 n_clusters_considered = [12,16,21] #How many clusters to preserve

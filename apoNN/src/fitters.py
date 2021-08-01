@@ -7,10 +7,11 @@ from sklearn.decomposition import PCA
 import apoNN.src.vectors as vectors
 from scipy.stats import median_absolute_deviation as mad
 import abc
-from ppca import PPCA
+from pyppca import ppca
 
 
-def compress_masked_spectra(x,x_occam,d,tol=1e-4):
+
+def compress_masked_spectra(x,x_occam,d,tol=1E-4):
     """
     Compresses high-dimensional spectra into a lower dimensional representation using PCA for missing values.
 
@@ -22,8 +23,6 @@ def compress_masked_spectra(x,x_occam,d,tol=1e-4):
         array containing occam open-cluster spectra with flagged values masked.
     d: int
         number of dimensions used for compression.
-    tol:
-        tolerance of the pca step. Higher values accelerate the code but make results more lossy.
     OUTPUTS
     z: np.array
         compressed array containing all spectra encoded
@@ -35,14 +34,10 @@ def compress_masked_spectra(x,x_occam,d,tol=1e-4):
     masked_x[x.mask]=np.nan
     masked_x_occam[x_occam.mask]=np.nan
     masked_all = np.concatenate((masked_x_occam,masked_x))
-    ppca = PPCA()
-    ppca.fit(data=masked_all, d=d, verbose=True,tol=tol)
-    n_occam = x_occam.data.shape[0]
-    z_occam,z = ppca.transform()[:n_occam],ppca.transform()[n_occam:]
-    return z,z_occam,ppca
-                
-
-        
+    C, ss, M, X, Ye = ppca(masked_all,d,True,threshold=tol)
+    n_occam = len(masked_x_occam)
+    z_occam,z = X[:n_occam],X[n_occam:]
+    return z,z_occam,C
 
 
 class BaseFitter(abc.ABC):

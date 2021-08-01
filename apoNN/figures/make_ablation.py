@@ -35,10 +35,10 @@ def autolabel(rects):
                 f"{height:.3f}",
                 ha='center', va='bottom',fontsize=6)
 
-def ablation_performance(Z,Z_occam):
-    ev_standard = evaluators.StandardEvaluator(Z,Z_occam,leave_out=True,fitter_class=standard_fitter)
-    ev_simple = evaluators.StandardEvaluator(Z,Z_occam,leave_out=True,fitter_class=simple_fitter)
-    ev_empty = evaluators.StandardEvaluator(Z,Z_occam,leave_out=True,fitter_class=fitters.EmptyFitter)
+def ablation_performance(Z,Z_occam,valid_idxs):
+    ev_standard = evaluators.EvaluatorWithFiltering(Z,Z_occam,leave_out=True,fitter_class=standard_fitter,valid_idxs=valid_idxs)
+    ev_simple = evaluators.EvaluatorWithFiltering(Z,Z_occam,leave_out=True,fitter_class=simple_fitter,valid_idxs=valid_idxs)
+    ev_empty = evaluators.EvaluatorWithFiltering(Z,Z_occam,leave_out=True,fitter_class=fitters.EmptyFitter,valid_idxs=valid_idxs)
     return ev_empty.weighted_average, ev_simple.weighted_average,ev_standard.weighted_average
 
 
@@ -49,13 +49,16 @@ z_dim = 30 #PCA dimensionality
 ###
 ###
 
+valid_idxs = apoUtils.get_valid_intercluster_idxs()
+
+
 with open(root_path/"spectra"/"without_interstellar"/"cluster.p","rb") as f:
     Z_occam = pickle.load(f)    
 
 with open(root_path/"spectra"/"without_interstellar"/"pop.p","rb") as f:
     Z = pickle.load(f)    
 
-ablation_Z = ablation_performance(Z[:,:z_dim],Z_occam[:,:z_dim])
+ablation_Z = ablation_performance(Z[:,:z_dim],Z_occam[:,:z_dim],valid_idxs)
 
 ###
 ###
@@ -66,7 +69,7 @@ with open(root_path/"labels"/"full"/"cluster.p","rb") as f:
 with open(root_path/"labels"/"full"/"pop.p","rb") as f:
     Y_full = pickle.load(f)    
 
-ablation_Y_full = ablation_performance(Y_full,Y_occam_full)
+ablation_Y_full = ablation_performance(Y_full,Y_occam_full,valid_idxs)
 
 ###
 ###
@@ -77,7 +80,7 @@ with open(root_path/"labels"/"core"/"cluster.p","rb") as f:
 with open(root_path/"labels"/"core"/"pop.p","rb") as f:
     Y_core = pickle.load(f)    
 
-ablation_Y_core = ablation_performance(Y_core,Y_occam_core)
+ablation_Y_core = ablation_performance(Y_core,Y_occam_core,valid_idxs)
 
 ### Plotting######
 
