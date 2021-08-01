@@ -21,7 +21,7 @@ print(root_path)
 
 n_start = 0
 #n_stars = 100000
-d = 60 #number of dimensions to use for compression
+d = 30 #number of dimensions to use for compression
 tol = 0.001 # tolerance to use for PPCA. Larger means faster but less accurate
 
 
@@ -132,64 +132,23 @@ data_occam = apoData.Dataset(allStar_occam)
 
 
 ### Create Z with interstellar features masked
+def create_many_zs(spectra,spectra_occamlike,n_runs=10,d=30,tol=1e-4):
+    for n in range(n_runs):
+        z,z_occam,C = fitters.compress_masked_spectra(spectra,spectra_occamlike,d,tol)
+        Z_occam = vectors.OccamVector(val = z_occam,cluster_names=cluster_idxs).remove_orphans()
+        Z = vectors.Vector(val = z)
+        with open(root_path/"spectra"/"without_interstellar"/f"clusterD{d}N{n}tol{tol}.p","wb") as f:
+            pickle.dump(Z_occam,f)    
 
-mask_interstellar, interstellar_locs = apoUtils.get_interstellar_bands()
-z,z_occam,ppca = fitters.compress_masked_spectra(data_occamlike.masked_spectra[:,mask_interstellar],data_occam.masked_spectra[:,mask_interstellar],d)
-Z_occam = vectors.OccamVector(val = z_occam,cluster_names=cluster_idxs).remove_orphans()
-Z = vectors.Vector(val = z)
+        with open(root_path/"spectra"/"without_interstellar"/f"popD{d}N{n}tol{tol}.p","wb") as f:
+            pickle.dump(Z,f)    
 
-
-with open(root_path/"spectra"/"without_interstellar"/"cluster.p","wb") as f:
-    pickle.dump(Z_occam,f)    
-
-with open(root_path/"spectra"/"without_interstellar"/"pop.p","wb") as f:
-    pickle.dump(Z,f)    
-
-
-
-### Create Z without interstellar features masked
-
-z_with,z_occam_with,ppca = fitters.compress_masked_spectra(data_occamlike.masked_spectra,data_occam.masked_spectra,d)
-Z_occam_with = vectors.OccamVector(val = z_occam_with,cluster_names=cluster_idxs).remove_orphans()
-Z_with = vectors.Vector(val = z_with)
-
-
-with open(root_path/"spectra"/"with_interstellar"/"cluster.p","wb") as f:
-    pickle.dump(Z_occam_with,f)    
-
-with open(root_path/"spectra"/"with_interstellar"/"pop.p","wb") as f:
-    pickle.dump(Z_with,f)    
 
 
 
-### Create Y_full with all well-behaved APOGEE species
-
-Y_occam_full = vectors.AllStarVector(allStar_occam,full_params)
-Y_occam_full = vectors.OccamVector(val = Y_occam_full.val,cluster_names = cluster_idxs).remove_orphans()
-Y_full = vectors.AllStarVector(allStar_occamlike[n_start:n_start+n_stars],full_params)
+mask_interstellar, interstellar_locs = apoUtils.get_interstellar_bands()
 
 
-with open(root_path/"labels"/"full"/"cluster.p","wb") as f:
-    pickle.dump(Y_occam_full,f)    
-
-with open(root_path/"labels"/"full"/"pop.p","wb") as f:
-    pickle.dump(Y_full,f)    
-
-
-
-### Create Y_core containing core set of abundances
-
-core_params =["Fe_H","Mg_H", "Ni_H", "Si_H","Al_H","C_H","N_H"]
-Y_occam_core = vectors.AllStarVector(allStar_occam,core_params)
-Y_occam_core = vectors.OccamVector(val = Y_occam_core.val,cluster_names = cluster_idxs).remove_orphans()
-Y_core = vectors.AllStarVector(allStar_occamlike[n_start:n_start+n_stars],core_params)
-
-
-with open(root_path/"labels"/"core"/"cluster.p","wb") as f:
-    pickle.dump(Y_occam_core,f)    
-
-with open(root_path/"labels"/"core"/"pop.p","wb") as f:
-    pickle.dump(Y_core,f)    
-
-
-
+#create_many_zs(data_occamlike.masked_spectra[:,mask_interstellar],data_occam.masked_spectra[:,mask_interstellar])
+#create_many_zs(data_occamlike.masked_spectra[:,mask_interstellar],data_occam.masked_spectra[:,mask_interstellar],d=60)
+create_many_zs(data_occamlike.masked_spectra[:,mask_interstellar],data_occam.masked_spectra[:,mask_interstellar],n_runs=10,d=30,tol = 1e-5)
