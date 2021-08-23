@@ -54,7 +54,7 @@ def label_locs(x_locs,y_locs,texts):
     """
     for (x_loc,y_loc,text) in zip(x_locs,y_locs,texts):
         ax.text(x_loc, y_loc,
-                f"{text:.3f}",
+                f"{text:#.2g}",
                 ha='center', va='bottom',fontsize=5.5)
 
 
@@ -137,6 +137,11 @@ y_err_val=ablation_Z_err
 
 
 
+save_path = root_path.parents[0]/"figures"/"ablation"
+save_path.mkdir(parents=True, exist_ok=True)
+
+
+
 plt.style.use('seaborn-colorblind')
 plt.style.use('tex')
 
@@ -150,7 +155,6 @@ autolabel(rects2,only_scaling_err)
 autolabel(rects3,full_algorithm_err)
 
 plt.errorbar(x=x_err,y=y_err,yerr=y_err_val,linestyle=" ",c="black",capsize=2.2,elinewidth=0.5)
-plt.title("Ablation study")
 
 ax.set_ylabel('Doppelganger rate',fontsize=8)
 ax.set_xticks(x)
