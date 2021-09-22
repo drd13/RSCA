@@ -141,8 +141,8 @@ color2 = cmap(0.75)
 
 
 figsize = list(apoUtils.set_size(apoUtils.column_width))
-figsize[0]=figsize[0]
-figsize[1]=figsize[1]/2
+figsize[0]=figsize[0]*2
+figsize[1]=figsize[1]/2*2
 
 fig, ax = plt.subplots(1,2,sharey="row",figsize=figsize,gridspec_kw={'hspace': 0, 'wspace': 0})
 
@@ -167,7 +167,7 @@ ax[1].axvline(x=np.mean(similarities_y[overlaps_y==1]),color=color1,linestyle="-
 #ax[1].set_ylabel("$p$")
 ax[1].set_title("From stellar abundances")
 ax[1].set_xlim([0,3])
-ax[0].set_ylim([0,2])
+ax[0].set_ylim([0,2.5])
 ax[1].legend()
 
 

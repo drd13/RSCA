@@ -71,10 +71,10 @@ column_width = 242.26653
 ###
 ###
 
-with open(root_path / "spectra" / "without_interstellar" / "clusterD30.p", "rb") as f:
+with open(root_path / "spectra" / "without_interstellar" / "cluster.p", "rb") as f:
     Z_occam = pickle.load(f)
 
-with open(root_path / "spectra" / "without_interstellar" / "popD30.p", "rb") as f:
+with open(root_path / "spectra" / "without_interstellar" / "pop.p", "rb") as f:
     Z = pickle.load(f)
 
 
@@ -176,6 +176,9 @@ plt.savefig(save_path / "mg.pdf", bbox_inches="tight", format="pdf")
 
 fig = plt.figure(figsize=figsize)
 using_mpl_scatter_density(fig,allStar_occamlike["VHELIO_AVG"],V.val[:,-4])
+plt.scatter(
+    allStar_occam["VHELIO_AVG"], V_occam.val[:, -4], s=0.2, color="orange", label="clusters"
+)
 plt.xlim(-300,150)
 plt.ylim(-30,20)
 plt.xlabel("VHELIO\_AVG")

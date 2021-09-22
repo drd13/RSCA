@@ -39,10 +39,10 @@ z_dim = 30 #PCA dimensionality
 ###
 ###
 
-with open(root_path/"spectra"/"without_interstellar"/"cluster.p","rb") as f:
+with open(root_path/"spectra"/"without_interstellar"/"clusterD60N0tol1e-05.p","rb") as f:
     Z_occam = pickle.load(f)    
 
-with open(root_path/"spectra"/"without_interstellar"/"pop.p","rb") as f:
+with open(root_path/"spectra"/"without_interstellar"/"popD60N0tol1e-05.p","rb") as f:
     Z = pickle.load(f)    
 
 

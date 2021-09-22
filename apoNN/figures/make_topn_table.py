@@ -12,7 +12,7 @@ import pickle
 #################
 z_dim = 30 #number of dimensions to use
 root_path = pathlib.Path(__file__).resolve().parents[2]/"outputs"/"data"
-tol = 1E-5 #the tol of the pickled ppca being loaded
+tol = 1E-4 #the tol of the pickled ppca being loaded
 dim = 30 #the number of dimensions of the pickled ppca being loaded 
 num_models = 10 #the number of pickled models to use for statistics
 N = list(range(1,8))+[30]
