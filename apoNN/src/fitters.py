@@ -47,7 +47,7 @@ class BaseFitter(abc.ABC):
         pass
     
     def transform(self,vector,scaling=True):
-        """transform a vector in a way that unit vector has variance one"""
+        """transform a vector using RSCA"""
         #transformed_vector  = np.dot(vector.whitened(self.whitener)(),self.pca.components_.T)
         transformed_vector = self.reparametrize(vector)
         if scaling is True:
