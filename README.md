@@ -1,31 +1,49 @@
-## PPPCA
+# RSCA
+**Measuring the chemical similarity of stars through applying metric-learning to open-clusters with experiments using the APOGEE DR16 survey**
 
-### Introduction
+## Summary
 
-This is the companion repository for the PPPCA paper. It is designed to contain all code and information necessary for reproducing experiments published in the paper. Special effort has been made towards making the code easy to run and well documented. If you find any issue or have a question, feel free to open a github issue.
+This is a companion repository for "Measuring chemical likeness of stars with RSCA" containing the code for reproducing experiments. Some effort has been made towards making the code easy to run and well documented but code has not been tested on external computer. Feel free to open a git issue if you run into any issues.
 
-### Requirements
+## Requirements
 
-- `apogee`. This module makes use of the `apogee` module, maintaimned by Jo Bovy, for interfacing with the Apogee scientific data. Make sure to point the module towards the data release DR16 if you wish to reproduce results in the paper. Because the code is modular, the code should be easily extendable to other surveys.
+- `apogee`: We access the APOGEE survey data using the `apogee` package. Detailed instructions for installing `apogee` can be found in its associated repository. This repository was designed to work with DR16.
 
-- `scikit-learn`
+- Other dependencies are :`astropy`,`matplotlib`,`mpl_scatter_density`,`numpy`,`scikit-learn`,`scipy`. These must be manually installed.
 
-- 'ppca'
+Use the package manager pip to install
+
+```bash
+pip install setup.py -e .
+```
+
 
 ### Structure
 
-The codebase contains a module containing the core code for reproducing experiments as found in `/apoNN/apoNN/src/`. The code for reproducing figures can be found in `/apoNN/apoNN/figures/` (with generated figures found in `/apoNN/outputs/figures`). Before generating figures, the scripts in "/apoNN/apoNN/scripts/" must be run.
+**`RSCA/apoNN/src` contains the core code for the algorithm. More precisely...**
 
-### Module
+`/apoNN/src/occam.py` contains code for cross-matching the Occam value-added catalogue with the APOGEE dataset cut. Is used for returning a filtered down Apogee Allstar Fits file containing only those OCCAM object that pass a data-cut.
 
-For those wanting to interact with the codebase, key files within `/apoNN/apoNN/src` are as follows:
+`/apoNN/src/data.py` contains code for converting an Apogee Allstar Fits file into numpy arrays or masked arrays. It will also download any missing AspcapStar spectra but does so extremely slowly.
 
-`/apoNN/apoNN/src/occam.py` contains code for cross-matching the Occam and Apogee catalogue. Is used for returning a filtered down Apogee Allstar Fits file containing only those OCCAM object that pass a data-cut.
 
-`/apoNN/apoNN/src/data.py` contains code for converting an Apogee Allstar Fits file into numpy arrays or masked arrays. If the ASPCAPSTAR files associated to each star in ALLstar have not been downloaded, this will download missing entries but extremely slowly.
+`/apoNN/src/vectors.py`contains wrappers around observations. Rather than directly manipulating numpy arrays, our algorithm wraps these through `Vector` classes. This allows for adding useful linear algebra utility functions and tools for naturally handling open-clusters and keeping track of member stars.
 
-`/apoNN/apoNN/src/vectors.py`contains wrappers around observations. Rather than directly manipulating numpy arrays, our algorithm wraps these through `Vector` classes. This allows for adding useful linear algebra utility functions and tools for naturally handling open-clusters and keeping track of member stars. 
+`/apoNN/src/fitters.py` contains the RSCA code (and a few unpublished variants), implemented in `Fitter` classes.
 
-`/apoNN/apoNN/src/fitters.py` contains the code for our algorithm, implemented in `Fitter` classes. This is only a few lines of code.
+`/apoNN/src/evaluators.py` contains `Evaluator` objects. These are wrappers around `Fitter` that naturally handle the cross-validation, calculate the doppelganger rates, and allow for inspecting individual open-clusters.
 
-`/apoNN/apoNN/src/evaluators.py` contains `Evaluator` objects. These are wrappers around `Fitter` that naturally handle the cross-validation, calculate the doppelganger rates, and allow for inspecting individual open-clusters.  
+**`RSCA/apoNN/scripts` contains Python scripts for downloading and saving the dataset** These must be run to download the dataset and reproduce the dataset cuts in the paper.
+
+**`RSCA/apoNN/figures` contains Python scripts for reproducing figures** run these to recreate the figures. These are also a good starting point to seeing how the code is structured.
+
+**`RSCA/outputs` contains any and all outputs. This includes datasets and generated figures**
+
+## Citation
+
+Please cite as:
+
+```
+TODO
+```
+
